@@ -1,0 +1,41 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: "postgres-lab"
+
+rule_files:
+  - "rules/*.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+scrape_configs:
+
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # PostgreSQL via postgres_exporter
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["postgres_exporter:9187"]
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "postgres-primary"
+
+  # Métricas del host
+  # node_exporter usa network_mode: host, por eso se accede via
+  # la IP de la gateway de la red bridge (172.17.0.1 por defecto)
+  - job_name: "node"
+    static_configs:
+      - targets: ["172.17.0.1:9100"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "docker-host"

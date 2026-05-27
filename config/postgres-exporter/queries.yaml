@@ -1,0 +1,152 @@
+# Consultas personalizadas para postgres_exporter
+# Referencia: https://github.com/prometheus-community/postgres_exporter
+
+pg_replication_lab:
+  query: |
+    SELECT
+      CASE WHEN pg_is_in_recovery() THEN 1 ELSE 0 END AS is_replica,
+      COALESCE(EXTRACT(EPOCH FROM (now() - pg_last_xact_replay_timestamp())), 0) AS lag
+  master: true
+  metrics:
+    - is_replica:
+        usage: "GAUGE"
+        description: "1 si es réplica, 0 si es primario"
+    - lag:
+        usage: "GAUGE"
+        description: "Segundos de lag de replicación"
+
+pg_postmaster:
+  query: |
+    SELECT EXTRACT(EPOCH FROM pg_postmaster_start_time()) AS start_time_seconds
+  master: true
+  metrics:
+    - start_time_seconds:
+        usage: "GAUGE"
+        description: "Timestamp de inicio del proceso postmaster"
+
+pg_stat_user_tables:
+  query: |
+    SELECT
+      schemaname,
+      relname,
+      seq_scan,
+      seq_tup_read,
+      idx_scan,
+      idx_tup_fetch,
+      n_tup_ins,
+      n_tup_upd,
+      n_tup_del,
+      n_live_tup,
+      n_dead_tup,
+      n_mod_since_analyze,
+      COALESCE(last_vacuum,    '1970-01-01Z') AS last_vacuum,
+      COALESCE(last_autovacuum,'1970-01-01Z') AS last_autovacuum,
+      COALESCE(last_analyze,   '1970-01-01Z') AS last_analyze,
+      COALESCE(last_autoanalyze,'1970-01-01Z') AS last_autoanalyze
+    FROM pg_stat_user_tables
+  metrics:
+    - schemaname:
+        usage: "LABEL"
+        description: "Esquema"
+    - relname:
+        usage: "LABEL"
+        description: "Tabla"
+    - seq_scan:
+        usage: "COUNTER"
+        description: "Escaneos secuenciales"
+    - idx_scan:
+        usage: "COUNTER"
+        description: "Escaneos por índice"
+    - n_live_tup:
+        usage: "GAUGE"
+        description: "Tuplas vivas estimadas"
+    - n_dead_tup:
+        usage: "GAUGE"
+        description: "Tuplas muertas estimadas"
+    - n_mod_since_analyze:
+        usage: "GAUGE"
+        description: "Filas modificadas desde el último ANALYZE"
+
+pg_database_size:
+  query: |
+    SELECT datname, pg_database_size(datname) AS size_bytes
+    FROM pg_database
+    WHERE datname NOT IN ('template0','template1')
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Base de datos"
+    - size_bytes:
+        usage: "GAUGE"
+        description: "Tamaño en bytes"
+
+pg_long_running_queries:
+  query: |
+    SELECT
+      count(*) AS count,
+      max(EXTRACT(EPOCH FROM (clock_timestamp() - query_start))) AS max_seconds
+    FROM pg_stat_activity
+    WHERE state NOT IN ('idle','idle in transaction (aborted)')
+      AND query_start IS NOT NULL
+      AND query NOT ILIKE '%pg_stat_activity%'
+      AND EXTRACT(EPOCH FROM (clock_timestamp() - query_start)) > 60
+  master: true
+  metrics:
+    - count:
+        usage: "GAUGE"
+        description: "Número de queries ejecutándose > 60 s"
+    - max_seconds:
+        usage: "GAUGE"
+        description: "Duración máxima en segundos"
+
+pg_bloat:
+  query: |
+    SELECT
+      schemaname,
+      tablename,
+      ROUND(CASE WHEN otta=0 THEN 0.0 ELSE sml.relpages/otta::numeric END,1) AS table_bloat_ratio,
+      CASE WHEN relpages < otta THEN 0 ELSE (bs*(sml.relpages-otta)::bigint) END AS wasted_bytes
+    FROM (
+      SELECT
+        schemaname, tablename, bs,
+        CEIL((cc.reltuples*((datahdr+ma-(CASE WHEN datahdr%ma=0 THEN ma ELSE datahdr%ma END))+nullhdr2+4))/(bs-20::float)) AS otta,
+        cc.relpages
+      FROM (
+        SELECT
+          ma, bs, schemaname, tablename,
+          (datawidth+(hdr+ma-(case when hdr%ma=0 THEN ma ELSE hdr%ma END)))::numeric AS datahdr,
+          (maxfracsum*(nullhdr+ma-(case when nullhdr%ma=0 THEN ma ELSE nullhdr%ma END))) AS nullhdr2
+        FROM (
+          SELECT
+            schemaname, tablename, hdr, ma, bs,
+            SUM((1-null_frac)*avg_width) AS datawidth,
+            MAX(null_frac) AS maxfracsum,
+            hdr+(
+              SELECT 1+count(*)/8 FROM pg_stats s2
+              WHERE null_frac<>0 AND s2.schemaname=s.schemaname AND s2.tablename=s.tablename
+            ) AS nullhdr
+          FROM pg_stats s, (
+            SELECT
+              (SELECT current_setting('block_size')::numeric) AS bs,
+              CASE WHEN substring(v,12,3) IN ('8.0','8.1','8.2') THEN 27 ELSE 23 END AS hdr,
+              CASE WHEN v ~ 'mingw32' OR v ~ '64-bit' THEN 8 ELSE 4 END AS ma
+            FROM (SELECT version() AS v) AS foo
+          ) AS constants
+          GROUP BY 1,2,3,4,5
+        ) AS foo
+      ) AS rs
+      JOIN pg_class cc ON cc.relname=tablename
+      JOIN pg_namespace nn ON cc.relnamespace=nn.oid AND nn.nspname=schemaname AND nn.nspname<>'information_schema'
+    ) AS sml
+    WHERE schemaname NOT IN ('pg_catalog','information_schema')
+  metrics:
+    - schemaname:
+        usage: "LABEL"
+    - tablename:
+        usage: "LABEL"
+    - table_bloat_ratio:
+        usage: "GAUGE"
+        description: "Ratio de bloat de la tabla"
+    - wasted_bytes:
+        usage: "GAUGE"
+        description: "Bytes desperdiciados por bloat"

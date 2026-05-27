@@ -1,0 +1,98 @@
+groups:
+  - name: postgres_alerts
+    interval: 30s
+    rules:
+
+      # ── Disponibilidad ──────────────────────────────────────
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL no disponible ({{ $labels.instance }})"
+          description: "La instancia {{ $labels.instance }} lleva más de 1 minuto sin responder."
+
+      # ── Conexiones ──────────────────────────────────────────
+      - alert: PostgreSQLTooManyConnections
+        expr: |
+          sum(pg_stat_activity_count) by (instance)
+          / sum(pg_settings_max_connections) by (instance) > 0.80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Demasiadas conexiones en {{ $labels.instance }}"
+          description: "Uso de conexiones > 80% durante 5 min."
+
+      - alert: PostgreSQLConnectionsCritical
+        expr: |
+          sum(pg_stat_activity_count) by (instance)
+          / sum(pg_settings_max_connections) by (instance) > 0.95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Conexiones críticas en {{ $labels.instance }}"
+          description: "Uso de conexiones > 95%."
+
+      # ── Replicación ─────────────────────────────────────────
+      - alert: PostgreSQLReplicationLag
+        expr: pg_replication_lag > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Lag de replicación elevado ({{ $labels.instance }})"
+          description: "Lag > 300 s durante 5 min."
+
+      # ── Bloqueos ────────────────────────────────────────────
+      - alert: PostgreSQLDeadlocks
+        expr: increase(pg_stat_database_deadlocks[5m]) > 5
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Deadlocks detectados en {{ $labels.datname }}"
+          description: "Más de 5 deadlocks en los últimos 5 min."
+
+      # ── Checkpoints ─────────────────────────────────────────
+      - alert: PostgreSQLHighCheckpointWarning
+        expr: |
+          rate(pg_stat_bgwriter_checkpoints_req_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Checkpoints forzados frecuentes ({{ $labels.instance }})"
+          description: "Aumentar max_wal_size o checkpoint_completion_target."
+
+      # ── Disco ────────────────────────────────────────────────
+      - alert: PostgreSQLTableBloat
+        expr: |
+          pg_bloat_table_bloat_ratio > 0.5
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Table bloat > 50% en {{ $labels.schemaname }}.{{ $labels.tablename }}"
+          description: "Considera ejecutar VACUUM o VACUUM FULL."
+
+  - name: node_alerts
+    rules:
+      - alert: HostHighCPU
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU alta en {{ $labels.instance }}"
+
+      - alert: HostLowDiskSpace
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Espacio en disco < 15% en {{ $labels.instance }}"
