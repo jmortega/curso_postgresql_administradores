@@ -486,7 +486,7 @@ go_gc_cleanups_executed_cleanups_total 0
 
 ```
 
-## Aplicación pgadmin
+### 5.6 Aplicación pgadmin
 
 La aplicación pgadmin se puede descargar e instalar en nuestra máquina desde https://www.pgadmin.org
 Crear una conexión con los siguientes datos de la imagen,teniendo en cuenta que en el caso de levantar los servicios utilizando la opción B, el puerto hay que poner el que nos ha devuelto el servicio de postgres-nodeport cuando hemos ejecutado el comando minikube service postgres-nodeport -n postgres-lab &
@@ -503,7 +503,7 @@ El esquema shop tiene 4 tablas para realizar consultas
 ![pgadmin_schemas](pgadmin_schemas.png "pgadmin_schemas")
 
 
-### 5.6 Destruir el entorno K8s
+### 5.7 Destruir el entorno K8s
 
 ```bash
 # Borrar solo los recursos del lab
