@@ -403,18 +403,105 @@ echo "Prometheus: http://$MINIKUBE_IP:30090"
 echo "PostgreSQL: $MINIKUBE_IP:30432"
 
 # Opción B — minikube service (abre el navegador automáticamente)
-minikube service grafana    -n postgres-lab
-minikube service prometheus -n postgres-lab
-minikube service postgres-nodeport -n postgres-lab
-minikube service pgadmin    -n postgres-lab
+
+$ minikube tunnel
+✅  Tunnel successfully started
+
+📌  NOTE: Please do not close this terminal as this process must stay alive for the tunnel to be accessible ...
+
+Al ejecutar minikube tunnel, Minikube crea una ruta de red directa utilizando la contraseña de administrador de tu sistema operativo para conectar el rango de IPs de tu red local con la red virtual del clúster. Esto asigna inmediatamente una IP real accesible desde tu máquina.
+Importante No cierres esa terminal Tal como advierte el cartel físico en tu consola, debes mantener esa ventana abierta. Si cierras la terminal o cancelas el proceso con Ctrl + C, el túnel se romperá y perderás la conectividad con tus servicios desde el navegador.
+
+$ minikube service grafana -n postgres-lab &
+
+┌──────────────┬─────────┬─────────────┬───────────────────────────┐
+│  NAMESPACE   │  NAME   │ TARGET PORT │            URL            │
+├──────────────┼─────────┼─────────────┼───────────────────────────┤
+│ postgres-lab │ grafana │ web/3000    │ http://192.168.49.2:30300 │
+└──────────────┴─────────┴─────────────┴───────────────────────────┘
+🔗  Starting tunnel for service grafana.
+┌──────────────┬─────────┬─────────────┬────────────────────────┐
+│  NAMESPACE   │  NAME   │ TARGET PORT │          URL           │
+├──────────────┼─────────┼─────────────┼────────────────────────┤
+│ postgres-lab │ grafana │             │ http://127.0.0.1:37751 │
+└──────────────┴─────────┴─────────────┴────────────────────────┘
+🎉  Opening service postgres-lab/grafana in default browser...
+❗  Porque estás usando controlador Docker en linux, la terminal debe abrirse para ejecutarlo.
+Se está abriendo en una sesión de navegador existente.
+
+
+$ minikube service prometheus -n postgres-lab &
+
+│  NAMESPACE   │    NAME    │ TARGET PORT │            URL            │
+├──────────────┼────────────┼─────────────┼───────────────────────────┤
+│ postgres-lab │ prometheus │ web/9090    │ http://192.168.49.2:30090 │
+└──────────────┴────────────┴─────────────┴───────────────────────────┘
+🔗  Starting tunnel for service prometheus.
+┌──────────────┬────────────┬─────────────┬────────────────────────┐
+│  NAMESPACE   │    NAME    │ TARGET PORT │          URL           │
+├──────────────┼────────────┼─────────────┼────────────────────────┤
+│ postgres-lab │ prometheus │             │ http://127.0.0.1:38033 │
+└──────────────┴────────────┴─────────────┴────────────────────────┘
+🎉  Opening service postgres-lab/prometheus in default browser...
+❗  Porque estás usando controlador Docker en linux, la terminal debe abrirse para ejecutarlo.
+Se está abriendo en una sesión de navegador existente.
+
+$ minikube service postgres-nodeport -n postgres-lab &
+
+│  NAMESPACE   │       NAME        │ TARGET PORT │            URL            │
+├──────────────┼───────────────────┼─────────────┼───────────────────────────┤
+│ postgres-lab │ postgres-nodeport │ 5432        │ http://192.168.49.2:30432 │
+└──────────────┴───────────────────┴─────────────┴───────────────────────────┘
+🔗  Starting tunnel for service postgres-nodeport.
+┌──────────────┬───────────────────┬─────────────┬────────────────────────┐
+│  NAMESPACE   │       NAME        │ TARGET PORT │          URL           │
+├──────────────┼───────────────────┼─────────────┼────────────────────────┤
+│ postgres-lab │ postgres-nodeport │             │ http://127.0.0.1:34251 │
+└──────────────┴───────────────────┴─────────────┴────────────────────────┘
+🎉  Opening service postgres-lab/postgres-nodeport in default browser...
+❗  Porque estás usando controlador Docker en linux, la terminal debe abrirse para ejecutarlo.
+Se está abriendo en una sesión de navegador existente.
 
 
 # Opción C — port-forward
 kubectl port-forward svc/grafana    3000:3000 -n postgres-lab &
 kubectl port-forward svc/prometheus 9090:9090 -n postgres-lab &
 kubectl port-forward svc/postgres   5432:5432 -n postgres-lab &
-kubectl port-forward svc/pgadmin    5050:80 -n postgres-lab &
+
+Acceso a Grafana http://localhost:3000/login
+
+Credenciales de acceso a grafana
+Usuario:admin
+Password:admin123
+
+Acceso a prometheus http://localhost:9090/query
+
+Métricas de prometheus http://localhost:9090/metrics
+Respuesta del endpoint /metrics:
+# HELP go_gc_cleanups_executed_cleanups_total Approximate total count of cleanup functions (created by runtime.AddCleanup) executed by the runtime. Subtract /gc/cleanups/queued:cleanups to approximate cleanup queue length. Useful for detecting slow cleanups holding up the queue. Sourced from /gc/cleanups/executed:cleanups.
+# TYPE go_gc_cleanups_executed_cleanups_total counter
+go_gc_cleanups_executed_cleanups_total 0
+# HELP go_gc_cleanups_queued_cleanups_total Approximate total count of cleanup functions (created by runtime.AddCleanup) queued by the runtime for execution. Subtract from /gc/cleanups/executed:cleanups to approximate cleanup queue length. Useful for detecting slow cleanups holding up the queue. Sourced from /gc/cleanups/queued:cleanups.
+# TYPE go_gc_cleanups_queued_cleanups_total counter
+
 ```
+
+## Aplicación pgadmin
+
+La aplicación pgadmin se puede descargar e instalar en nuestra máquina desde https://www.pgadmin.org
+Crear una conexión con los siguientes datos de la imagen,teniendo en cuenta que en el caso de levantar los servicios utilizando la opción B, el puerto hay que poner el que nos ha devuelto el servicio de postgres-nodeport cuando hemos ejecutado el comando minikube service postgres-nodeport -n postgres-lab &
+
+Si optamos por la opción C(port forward),el puerto es el 5432
+
+Para esta conexión,la password es pgadmin123
+
+![pgadmin](pgadmin.png "pgadmin")
+
+Se han definido 2 schemas,public y shop.
+El esquema shop tiene 4 tablas para realizar consultas
+
+![pgadmin_schemas](pgadmin_schemas.png "pgadmin_schemas")
+
 
 ### 5.6 Destruir el entorno K8s
 
@@ -569,6 +656,42 @@ curl -s 'http://localhost:9090/api/v1/query?query=pg_up' | jq '.data.result'
 ```bash
 # Estado general del namespace
 kubectl get all -n postgres-lab
+
+NAME                                    READY   STATUS    RESTARTS   AGE
+pod/grafana-58f8f4cc4c-dsgjr            1/1     Running   0          96m
+pod/node-exporter-56c69b8c4f-7tnsg      1/1     Running   0          96m
+pod/pgadmin-65fbdf6dd4-7m7qd            1/1     Running   0          80m
+pod/postgres-0                          1/1     Running   0          96m
+pod/postgres-exporter-7fb5dd5dd-nfppb   1/1     Running   0          96m
+pod/prometheus-5bd44c8c7f-mvddc         1/1     Running   0          96m
+
+NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+service/grafana             NodePort    10.103.2.185     <none>        3000:30300/TCP   96m
+service/node-exporter       ClusterIP   10.111.249.238   <none>        9100/TCP         96m
+service/pgadmin             NodePort    10.104.61.115    <none>        80:30050/TCP     80m
+service/postgres            ClusterIP   10.99.155.14     <none>        5432/TCP         96m
+service/postgres-exporter   ClusterIP   10.111.50.21     <none>        9187/TCP         96m
+service/postgres-headless   ClusterIP   None             <none>        5432/TCP         96m
+service/postgres-nodeport   NodePort    10.109.97.81     <none>        5432:30432/TCP   96m
+service/prometheus          NodePort    10.97.158.161    <none>        9090:30090/TCP   96m
+
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/grafana             1/1     1            1           96m
+deployment.apps/node-exporter       1/1     1            1           96m
+deployment.apps/pgadmin             1/1     1            1           80m
+deployment.apps/postgres-exporter   1/1     1            1           96m
+deployment.apps/prometheus          1/1     1            1           96m
+
+NAME                                          DESIRED   CURRENT   READY   AGE
+replicaset.apps/grafana-58f8f4cc4c            1         1         1       96m
+replicaset.apps/node-exporter-56c69b8c4f      1         1         1       96m
+replicaset.apps/pgadmin-65fbdf6dd4            1         1         1       80m
+replicaset.apps/postgres-exporter-7fb5dd5dd   1         1         1       96m
+replicaset.apps/prometheus-5bd44c8c7f         1         1         1       96m
+
+NAME                        READY   AGE
+statefulset.apps/postgres   1/1     96m
+
 
 # Eventos (útil para debugar)
 kubectl get events -n postgres-lab --sort-by='.lastTimestamp'
