@@ -111,6 +111,38 @@ psql --version
 ```bash
 # Opción A — Script automático
 ./start-lab.sh
+[INFO] Levantando servicios con Docker Compose...
+[+] Running 6/6
+ ✔ Container node_exporter      Running                                    0.0s 
+ ✔ Container postgres           Healthy                                   10.7s 
+ ✔ Container pgadmin            Started                                    0.2s 
+ ✔ Container postgres_exporter  Started                                    0.3s 
+ ✔ Container prometheus         Started                                    0.3s 
+ ✔ Container grafana            Started                                    0.3s 
+[INFO] Esperando a que PostgreSQL responda...
+[INFO] PostgreSQL listo ✅
+
+NAME                IMAGE                                          COMMAND                  SERVICE             CREATED         STATUS                    PORTS
+grafana             grafana/grafana:latest                         "/run.sh"                grafana             2 minutes ago   Up Less than a second     0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp
+node_exporter       prom/node-exporter:latest                      "/bin/node_exporter …"   node_exporter       3 minutes ago   Up 2 minutes              
+pgadmin             dpage/pgadmin4:latest                          "/entrypoint.sh"         pgadmin             3 minutes ago   Up 1 second               0.0.0.0:5050->80/tcp, [::]:5050->80/tcp
+postgres            postgres:17                                    "docker-entrypoint.s…"   postgres            3 minutes ago   Up 11 seconds (healthy)   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+postgres_exporter   prometheuscommunity/postgres-exporter:latest   "/bin/postgres_expor…"   postgres_exporter   3 minutes ago   Up 1 second               0.0.0.0:9187->9187/tcp, [::]:9187->9187/tcp
+prometheus          prom/prometheus:latest                         "/bin/prometheus --c…"   prometheus          3 minutes ago   Up Less than a second     0.0.0.0:9090->9090/tcp, [::]:9090->9090/tcp
+
+══════════════════════════════════════════════════════════
+ 🐘  PostgreSQL   →  localhost:5432  (pgadmin / pgadmin123)
+ 📊  Grafana      →  http://localhost:3000  (admin / admin123)
+ 🔥  Prometheus   →  http://localhost:9090
+ 🖥️   pgAdmin      →  http://localhost:5050  (admin@lab.local / pgadmin123)
+ 📈  pg_exporter  →  http://localhost:9187/metrics
+ 📈  node_export  →  http://localhost:9100/metrics
+══════════════════════════════════════════════════════════
+
+[INFO] Para detener:             cd docker && docker compose down
+[INFO] Para detener + borrar datos: cd docker && docker compose down -v
+[INFO] Para ver logs:            cd docker && docker compose logs -f [servicio]
+
 
 # Opción B — Manual
 cd docker
