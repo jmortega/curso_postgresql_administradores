@@ -405,9 +405,15 @@ minikube start \
   --disk-size=20g \
   --kubernetes-version=stable
 
+# Listar addons
+minikube addons list
+
 # Habilitar addons
 minikube addons enable metrics-server
 minikube addons enable ingress
+
+#Minikube dashboard
+minikube dashboard
 ```
 
 ### 5.3 Aplicar manifiestos paso a paso
