@@ -319,8 +319,10 @@ WHERE state != 'idle'
 ORDER BY segundos DESC;
 
 -- Estadísticas de uso de tablas (seq scan vs index scan)
--- seq_scan (Sequential Scan) — PostgreSQL lee la tabla entera de principio a fin, fila por fila, sin importar cuántas filas necesita realmente. Es como buscar un nombre en un libro leyendo todas las páginas.
--- idx_scan (Index Scan) — PostgreSQL consulta primero el índice (una estructura ordenada separada), obtiene exactamente las posiciones de las filas que necesita y va directamente a ellas. Es como usar el índice del libro para ir a la página exacta.
+-- seq_scan (Sequential Scan) — PostgreSQL lee la tabla entera de principio a fin, fila por fila,
+sin importar cuántas filas necesita realmente. Es como buscar un nombre en un libro leyendo todas las páginas.
+-- idx_scan (Index Scan) — PostgreSQL consulta primero el índice (una estructura ordenada separada), obtiene exactamente
+las posiciones de las filas que necesita y va directamente a ellas. Es como usar el índice del libro para ir a la página exacta.
 
 SELECT relname,
        seq_scan, idx_scan,
