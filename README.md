@@ -162,6 +162,9 @@ docker compose logs postgres --tail=20
 ```bash
 psql -h localhost -p 5432 -U pgadmin -d labdb -c "SELECT version();"
 # Password: pgadmin123
+
+$ docker exec -it postgres psql -U pgadmin -d labdb
+# Password: pgadmin123
 ```
 
 ### 4.4 Detener el entorno
