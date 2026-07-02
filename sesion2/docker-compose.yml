@@ -1,0 +1,65 @@
+# =============================================================
+# Sesión 2 — PostgreSQL Avanzado
+#
+# Un único servidor PostgreSQL con TODAS las extensiones:
+#   · pg_stat_statements + pg_wait_sampling  (requieren preload)
+#   · pgvector                               (CREATE EXTENSION)
+#   · PostGIS + postgis_topology             (CREATE EXTENSION)
+#
+# Los scripts Python se ejecutan desde el host:
+#   python scripts/postgis_manager.py
+#   python scripts/pgvector_manager.py
+#   python scripts/pgmon_manager.py
+#   python scripts/postgres_logs_manager.py
+#
+# Conexión estándar:
+#   host=localhost  port=5432  user=postgres  password=postgres_lab
+#
+# IMPORTANTE: tras modificar postgresql.conf (shared_preload_libraries)
+# es necesario recrear el contenedor:
+#   docker compose down -v && docker compose up --build -d
+# =============================================================
+
+networks:
+  pg_sesion2_net:
+    driver: bridge
+
+volumes:
+  pg_sesion2_data:
+
+services:
+
+  postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pg-sesion2:16
+    container_name: pg-sesion2
+    hostname: pg-sesion2
+    networks:
+      - pg_sesion2_net
+    environment:
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres_lab
+      POSTGRES_DB:       postgres
+      PGDATA:            /var/lib/postgresql/data
+    volumes:
+      - pg_sesion2_data:/var/lib/postgresql/data
+      # postgresql.conf con shared_preload_libraries para pg_stat_statements
+      # y pg_wait_sampling — ambas DEBEN cargarse en el arranque del proceso
+      - ./configs/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./configs/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      # init_db.sql activa todas las extensiones en la primera ejecución
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+    ports:
+      - "5432:5432"
+    command: >
+      postgres
+        -c config_file=/etc/postgresql/postgresql.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    restart: unless-stopped
