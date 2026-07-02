@@ -1,0 +1,71 @@
+-- ─────────────────────────────────────────────────────────────
+-- .psqlrc — Sesión 2 · Configuración interactiva de psql
+-- ─────────────────────────────────────────────────────────────
+
+-- 1. Activar medición de tiempos automática
+\timing on
+
+-- 2. Mostrar outputs vacíos como NULL de forma explícita
+\pset null '[NULL]'
+
+-- 3. Formateo de bordes limpio para reportes tipo tabla
+\pset border 2
+
+-- 4. Activar el modo expandido automático (cambia a vertical si el output no cabe en pantalla)
+\pset expanded auto
+
+-- 5. Prompt Avanzado y dinámico (Inyecta colores y detecta si es Primario o Réplica)
+\set PROMPT1 '%[%033[1;33m%]%n@%M:%/%[%033[0m%]%R%# '
+
+-- 6. Historial de comandos persistente entre sesiones
+--    Guarda hasta 2000 entradas en ~/.psql_history
+\set HISTSIZE 2000
+\set HISTFILE ~/.psql_history
+-- Prueba: ejecuta varias consultas, sal con \q, vuelve a entrar
+--         y pulsa ↑ para recuperarlas
+
+-- 7. Atajos de teclado (variables \set como macros reutilizables)
+--    Uso: escribe :conexiones y pulsa Enter
+\set conexiones 'SELECT pid, usename, application_name, state, LEFT(query,60) AS query FROM pg_stat_activity ORDER BY state;'
+\set tamanios   'SELECT relname, pg_size_pretty(pg_total_relation_size(relid)) AS total, pg_size_pretty(pg_relation_size(relid)) AS tabla, pg_size_pretty(pg_indexes_size(relid)) AS indices FROM pg_statio_user_tables ORDER BY pg_total_relation_size(relid) DESC LIMIT 10;'
+\set bloqueos   'SELECT pid, usename, wait_event_type, wait_event, LEFT(query,60) AS query FROM pg_stat_activity WHERE wait_event_type = ''Lock'' ORDER BY pid;'
+\set version    'SELECT version();'
+\set extensiones 'SELECT extname, extversion FROM pg_extension ORDER BY extname;'
+-- Prueba: escribe :version y pulsa Enter
+--         escribe :conexiones y pulsa Enter
+--         escribe :extensiones y pulsa Enter
+
+-- 8. Separador de miles en números (mucho más legible con tablas grandes)
+\pset numericlocale on
+-- Prueba:
+--   SELECT count(*) FROM pg_class;
+--   SELECT 1234567890::numeric;
+--   → verás 1.234.567.890 en lugar de 1234567890
+
+-- 9. Formato de fecha/hora ISO con zona horaria en los resultados
+SET datestyle = 'ISO, DMY';
+SET timezone  = 'Europe/Madrid';
+-- Prueba:
+--   SELECT now();
+--   SELECT '2026-01-15'::date;
+--   → fechas en formato DD-MM-YYYY con zona horaria local
+
+-- 10. Silenciar los mensajes informativos de inicio (menos ruido)
+\set QUIET on
+    \unset QUIET
+-- (el bloque \set QUIET on / \unset QUIET enmarca la carga del .psqlrc
+--  para que no imprima mensajes mientras lee este fichero)
+
+-- 11. Alias para EXPLAIN ANALYZE completo con BUFFERS
+--     Uso: escribe EXPLAIN_FULL seguido de tu consulta
+\set EXPLAIN 'EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)'
+-- Prueba:
+--   :EXPLAIN SELECT * FROM pg_class WHERE relkind = 'r';
+--   → muestra el plan real con tiempos y uso de caché (buffers hit/read)
+
+-- 12. Prompt secundario diferenciado (cuando la consulta ocupa varias líneas)
+--     El prompt pasa de # a → para indicar que la consulta continúa
+\set PROMPT2 '%[%033[0;36m%]→ %[%033[0m%]'
+-- Prueba: escribe una consulta multilínea sin terminar con ; y pulsa Enter
+--         verás el prompt → en lugar del prompt principal
+
