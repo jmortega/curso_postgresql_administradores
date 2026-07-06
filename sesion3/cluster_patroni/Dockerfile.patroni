@@ -1,0 +1,30 @@
+FROM postgres:16-bookworm
+
+LABEL description="PostgreSQL 16 + Patroni para clúster HA con PgBouncer y HAProxy"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3 \
+        python3-pip \
+        python3-psycopg2 \
+        curl \
+        wget \
+        vim \
+        procps \
+        iputils-ping \
+        netcat-openbsd \
+        gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && gosu nobody true
+
+RUN pip3 install --no-cache-dir --break-system-packages \
+        patroni[etcd3]==3.3.0 \
+        psycopg2-binary
+
+RUN mkdir -p /data/patroni /scripts \
+    && chown -R postgres:postgres /data/patroni
+
+COPY scripts/ /scripts/
+RUN chmod +x /scripts/*.sh 2>/dev/null || true \
+    && chown -R postgres:postgres /scripts
+
+ENTRYPOINT ["/scripts/entrypoint_patroni.sh"]

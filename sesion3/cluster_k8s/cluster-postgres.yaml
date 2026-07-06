@@ -1,0 +1,29 @@
+apiVersion: acid.zalan.do/v1
+kind: postgresql
+metadata:
+  labels:
+    team: acid
+  name: mi-cluster-postgres
+  namespace: default
+spec:
+  allowedSourceRanges: null
+  enableConnectionPooler: true
+  enableMasterLoadBalancer: true
+  enableMasterPoolerLoadBalancer: true
+  enableReplicaConnectionPooler: true
+  enableReplicaLoadBalancer: true
+  numberOfInstances: 3
+  postgresql:
+    version: '17'
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1000Mi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  teamId: acid
+  volume:
+    size: 20Gi
+    storageClass: standard
+    throughput: 125

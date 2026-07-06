@@ -1,0 +1,73 @@
+scope: pg-ha-cluster
+name: pg-node3
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: 172.30.0.22:8008
+
+etcd3:
+  hosts: etcd:2379
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        wal_level: replica
+        hot_standby: "on"
+        max_wal_senders: 10
+        max_replication_slots: 10
+        wal_keep_size: 512
+        hot_standby_feedback: "on"
+        shared_preload_libraries: pg_stat_statements
+        log_connections: "on"
+        log_destination: stderr
+        logging_collector: "off"
+  initdb:
+    - encoding: UTF8
+    - data-checksums
+  pg_hba:
+    - host replication replicator 172.30.0.0/24 scram-sha-256
+    - host all postgres 172.30.0.0/24 trust
+    - host all all 172.30.0.0/24 scram-sha-256
+    - host all all 0.0.0.0/0 scram-sha-256
+  users:
+    appuser:
+      password: app_lab
+      options:
+        - createdb
+    replicator:
+      password: repl_lab
+      options:
+        - replication
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: 172.30.0.22:5432
+  data_dir: /data/patroni
+  bin_dir: /usr/lib/postgresql/16/bin
+  pgpass: /tmp/pgpass
+  authentication:
+    replication:
+      username: replicator
+      password: repl_lab
+    superuser:
+      username: postgres
+      password: postgres_lab
+    rewind:
+      username: postgres
+      password: postgres_lab
+  parameters:
+    unix_socket_directories: /var/run/postgresql
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: true
+  nosync: false
+  priority: 50

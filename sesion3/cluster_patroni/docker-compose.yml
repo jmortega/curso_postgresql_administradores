@@ -1,0 +1,241 @@
+# =============================================================
+# pg-ha-lab — Clúster PostgreSQL de Alta Disponibilidad
+#
+# Stack completo:
+#   etcd          → DCS (consenso y configuración distribuida)
+#   pg-node1      → PostgreSQL 16 + Patroni (primario inicial)
+#   pg-node2      → PostgreSQL 16 + Patroni (réplica 1)
+#   pg-node3      → PostgreSQL 16 + Patroni (réplica 2)
+#   pgbouncer     → Pool de conexiones (puerto 6432)
+#   haproxy       → Balanceador TCP (escritura:5000, lectura:5001)
+#
+# Flujo de conexión:
+#   App → HAProxy:5000/5001 → PgBouncer:6432 → PostgreSQL:5432
+#
+# Puertos expuestos en el host:
+#   5000  → HAProxy escritura  (→ primario activo)
+#   5001  → HAProxy lectura    (→ réplicas, round-robin)
+#   5432  → pg-node1 directo
+#   5433  → pg-node2 directo
+#   5434  → pg-node3 directo
+#   6432  → PgBouncer directo
+#   7000  → HAProxy stats UI
+#   8008  → Patroni REST API node1
+#   8009  → Patroni REST API node2
+#   8010  → Patroni REST API node3
+#   2379  → etcd cliente
+# =============================================================
+
+networks:
+  pg_ha_net:
+    name: pg_ha_net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+volumes:
+  etcd_data:
+  pg_node1_data:
+  pg_node2_data:
+  pg_node3_data:
+
+services:
+
+  # ─────────────────────────────────────────────────────────────
+  # ETCD — almacén de estado del clúster Patroni
+  # ─────────────────────────────────────────────────────────────
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.9
+    container_name: etcd
+    hostname: etcd
+    networks:
+      pg_ha_net:
+        ipv4_address: 172.30.0.10
+    environment:
+      ETCD_NAME: etcd0
+      ETCD_DATA_DIR: /etcd-data
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd:2379
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd:2380
+      ETCD_INITIAL_CLUSTER: etcd0=http://etcd:2380
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: pg-ha-lab
+      ALLOW_NONE_AUTHENTICATION: "yes"
+    volumes:
+      - etcd_data:/etcd-data
+    ports:
+      - "2379:2379"
+    healthcheck:
+      test: ["CMD", "etcdctl", "--endpoints=http://localhost:2379", "endpoint", "health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────────────────────
+  # PG-NODE1 — Primario inicial
+  # ─────────────────────────────────────────────────────────────
+  pg-node1:
+    build:
+      context: .
+      dockerfile: Dockerfile.patroni
+    image: pg-patroni-ha:16
+    container_name: pg-node1
+    hostname: pg-node1
+    user: root
+    networks:
+      pg_ha_net:
+        ipv4_address: 172.30.0.20
+    environment:
+      NODE_NAME: pg-node1
+      NODE_IP: 172.30.0.20
+      PATRONI_SCOPE: pg-ha-cluster
+      POSTGRES_PASSWORD: postgres_lab
+      REPL_PASSWORD: repl_lab
+    volumes:
+      - pg_node1_data:/data/patroni
+      - ./configs/patroni/patroni-node1.yml:/etc/patroni/patroni.yml:ro
+      - ./scripts:/scripts
+    ports:
+      - "5432:5432"
+      - "8008:8008"
+    depends_on:
+      etcd:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/patroni_ready && pg_isready -U postgres || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────────────────────
+  # PG-NODE2 — Réplica 1 (priority alta)
+  # ─────────────────────────────────────────────────────────────
+  pg-node2:
+    image: pg-patroni-ha:16
+    pull_policy: never
+    container_name: pg-node2
+    hostname: pg-node2
+    user: root
+    networks:
+      pg_ha_net:
+        ipv4_address: 172.30.0.21
+    environment:
+      NODE_NAME: pg-node2
+      NODE_IP: 172.30.0.21
+      PATRONI_SCOPE: pg-ha-cluster
+      POSTGRES_PASSWORD: postgres_lab
+      REPL_PASSWORD: repl_lab
+    volumes:
+      - pg_node2_data:/data/patroni
+      - ./configs/patroni/patroni-node2.yml:/etc/patroni/patroni.yml:ro
+      - ./scripts:/scripts
+    ports:
+      - "5433:5432"
+      - "8009:8008"
+    depends_on:
+      pg-node1:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────────────────────
+  # PG-NODE3 — Réplica 2 (priority baja)
+  # ─────────────────────────────────────────────────────────────
+  pg-node3:
+    image: pg-patroni-ha:16
+    pull_policy: never
+    container_name: pg-node3
+    hostname: pg-node3
+    user: root
+    networks:
+      pg_ha_net:
+        ipv4_address: 172.30.0.22
+    environment:
+      NODE_NAME: pg-node3
+      NODE_IP: 172.30.0.22
+      PATRONI_SCOPE: pg-ha-cluster
+      POSTGRES_PASSWORD: postgres_lab
+      REPL_PASSWORD: repl_lab
+    volumes:
+      - pg_node3_data:/data/patroni
+      - ./configs/patroni/patroni-node3.yml:/etc/patroni/patroni.yml:ro
+      - ./scripts:/scripts
+    ports:
+      - "5434:5432"
+      - "8010:8008"
+    depends_on:
+      pg-node2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────────────────────
+  # PGBOUNCER — Pool de conexiones
+  # ─────────────────────────────────────────────────────────────
+  pgbouncer:
+    # edoburu/pgbouncer: imagen Alpine activamente mantenida.
+    # Acepta pgbouncer.ini montado — si existe, ignora las variables de entorno.
+    image: edoburu/pgbouncer:latest
+    container_name: pgbouncer
+    hostname: pgbouncer
+    networks:
+      pg_ha_net:
+        ipv4_address: 172.30.0.30
+    volumes:
+      - ./configs/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./configs/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    ports:
+      - "6432:6432"
+    depends_on:
+      pg-node1:
+        condition: service_healthy
+      haproxy:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 -U appuser -d appdb || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────────────────────
+  # HAPROXY — Balanceador TCP
+  # ─────────────────────────────────────────────────────────────
+  haproxy:
+    image: haproxy:2.8-alpine
+    container_name: haproxy
+    hostname: haproxy
+    networks:
+      pg_ha_net:
+        ipv4_address: 172.30.0.40
+    volumes:
+      - ./configs/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+      - "7000:7000"
+    depends_on:
+      pg-node1:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped

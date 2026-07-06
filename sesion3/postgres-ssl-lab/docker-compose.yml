@@ -1,0 +1,53 @@
+# =============================================================
+# docker-compose.yml — PostgreSQL 16 con SSL completo
+# =============================================================
+# Prerequisito: ejecutar primero ./generar_certs.sh
+# =============================================================
+
+services:
+
+  postgres-ssl:
+    image: postgres:16-alpine
+    container_name: postgres-ssl
+    restart: unless-stopped
+
+    # El contenedor necesita arrancar como root para que el script
+    # de entrada pueda corregir los permisos de los certificados
+    # (el volumen los monta con el propietario del host) y luego
+    # hacer exec gosu postgres para arrancar PostgreSQL.
+    user: root
+
+    environment:
+      POSTGRES_USER:     pguser
+      POSTGRES_PASSWORD: pgpassword
+      POSTGRES_DB:       testdb
+      PGDATA:            /var/lib/postgresql/data
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      # Datos persistentes
+      - postgres_ssl_data:/var/lib/postgresql/data
+      # Certificados generados por generar_certs.sh
+      - ./certs/server/server.crt:/certs/server.crt:ro
+      - ./certs/server/server.key:/certs/server.key:ro
+      - ./certs/ca/ca.crt:/certs/ca.crt:ro
+      # Configuración
+      - ./config/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      # Init SQL: crea tablas y datos de prueba (se ejecuta desde entrypoint)
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      # Entrypoint personalizado
+      - ./entrypoint.sh:/entrypoint.sh:ro
+
+    command: ["/entrypoint.sh"]
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pguser -d testdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  postgres_ssl_data:
