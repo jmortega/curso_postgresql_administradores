@@ -1,0 +1,196 @@
+version: "3.9"
+
+networks:
+  monitoring:
+    driver: bridge
+
+volumes:
+  prometheus_data: {}
+  grafana_data: {}
+  loki_data: {}
+  postgres_data: {}
+
+services:
+
+  # ─────────────────────────────────────────────
+  # PostgreSQL (instancia de ejemplo a monitorizar)
+  # ─────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pguser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pgpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-appdb}
+      POSTGRES_HOST_AUTH_METHOD: trust 
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    # ⚠️  logging_collector=on requiere un directorio preexistente con permisos
+    # correctos, lo que no ocurre en la imagen Alpine.  Usamos log_destination=stderr
+    # (predeterminado de Docker): los logs van a stdout/stderr y Docker los captura;
+    # Promtail los recoge vía el socket Docker sin necesidad de montar volúmenes.
+    command: >
+      postgres
+        -c shared_preload_libraries=pg_stat_statements
+        -c pg_stat_statements.track=all
+        -c pg_stat_statements.max=10000
+        -c track_activity_query_size=2048
+        -c log_destination=stderr
+        -c logging_collector=off
+        -c log_min_duration_statement=1000
+        -c log_connections=on
+        -c log_disconnections=on
+        -c log_lock_waits=on
+        -c log_line_prefix='%t [%p] %q%u@%d '
+        -c wal_level=replica
+        -c max_wal_senders=5
+        -c wal_keep_size=1GB
+        -c hba_file=/etc/postgresql/pg_hba.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pguser} -d ${POSTGRES_DB:-appdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - monitoring
+
+  # ─────────────────────────────────────────────
+  # PostgreSQL Exporter  →  expone métricas para Prometheus
+  # ─────────────────────────────────────────────
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-pguser}:${POSTGRES_PASSWORD:-pgpassword}@postgres:5432/${POSTGRES_DB:-appdb}?sslmode=disable"
+      PG_EXPORTER_EXTEND_QUERY_PATH: /etc/postgres-exporter/queries.yaml
+    ports:
+      - "9187:9187"
+    volumes:
+      - ./postgres-exporter/queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - monitoring
+
+  # ─────────────────────────────────────────────
+  # Prometheus  →  recopilación y almacenamiento de métricas
+  # ─────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--storage.tsdb.retention.size=10GB"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+      - "--web.enable-admin-api"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts/:/etc/prometheus/alerts/:ro
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring
+
+  # ─────────────────────────────────────────────
+  # Alertmanager  →  gestión y envío de alertas
+  # ─────────────────────────────────────────────
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    networks:
+      - monitoring
+  
+  # ─────────────────────────────────────────────
+  # node-exporter  →  métricas del sistema operativo
+  # ─────────────────────────────────────────────
+  node-exporter:
+    image: prom/node-exporter:v1.8.0
+    ports:
+        - "9100:9100"
+    volumes:
+        - /proc:/host/proc:ro
+        - /sys:/host/sys:ro
+    command:
+        - "--path.procfs=/host/proc"
+        - "--path.sysfs=/host/sys"
+    networks:
+        - monitoring
+
+  # ─────────────────────────────────────────────
+  # Loki  →  agregación y almacenamiento de logs
+  # ─────────────────────────────────────────────
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/loki-config.yml
+    networks:
+      - monitoring
+
+  # ─────────────────────────────────────────────
+  # Promtail  →  agente de recolección de logs → Loki
+  # ─────────────────────────────────────────────
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: promtail
+    restart: unless-stopped
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/promtail-config.yml
+    depends_on:
+      - loki
+    networks:
+      - monitoring
+
+  # ─────────────────────────────────────────────
+  # Grafana  →  dashboards y visualización
+  # ─────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - monitoring

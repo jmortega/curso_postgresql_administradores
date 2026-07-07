@@ -1,0 +1,20 @@
+groups:
+  - name: postgres_log_alerts
+    rules:
+      - alert: PostgresDeadlockInLogs
+        expr: |
+          sum(rate({job="postgres"} |= "deadlock detected" [5m])) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Deadlock detectado en logs de PostgreSQL"
+
+      - alert: PostgresFatalErrorInLogs
+        expr: |
+          sum(rate({job="postgres", level="FATAL"} [5m])) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Error FATAL en PostgreSQL"

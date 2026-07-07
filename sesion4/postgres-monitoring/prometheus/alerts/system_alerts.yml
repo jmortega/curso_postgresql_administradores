@@ -1,0 +1,12 @@
+groups:
+  - name: system_alerts
+    rules:
+
+      - alert: ExporterDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Exporter caído: {{ $labels.job }} ({{ $labels.instance }})"
+          description: "El job {{ $labels.job }} no responde desde hace más de 2 minutos."
