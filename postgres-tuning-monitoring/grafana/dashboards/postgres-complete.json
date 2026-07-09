@@ -1,0 +1,435 @@
+{
+  "title": "PostgreSQL — Monitorización Completa",
+  "uid": "postgres-complete",
+  "description": "Dashboard completo: instancia, conexiones, cache, I/O, WAL, replicación, locks, autovacuum y logs",
+  "tags": ["postgresql", "database", "monitoring"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "version": 1,
+  "time": { "from": "now-3h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "instance",
+        "label": "Instancia",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(pg_up, instance)",
+        "refresh": 2,
+        "multi": false,
+        "includeAll": false
+      },
+      {
+        "name": "datname",
+        "label": "Base de datos",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(pg_stat_database_blks_hit{instance=~\"$instance\"}, datname)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*"
+      }
+    ]
+  },
+  "panels": [
+
+    {
+      "id": 1,
+      "title": "🟢 Estado de la Instancia",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 }
+    },
+    {
+      "id": 2,
+      "title": "PostgreSQL UP",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 1, "w": 3, "h": 4 },
+      "targets": [{ "expr": "pg_up{instance=~\"$instance\"}", "legendFormat": "UP" }],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": 0 }, { "color": "green", "value": 1 }] }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Uptime",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 3, "y": 1, "w": 4, "h": 4 },
+      "targets": [{ "expr": "(time() - pg_postmaster_start_time_seconds{instance=~\"$instance\"})", "legendFormat": "Uptime" }],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "color": { "mode": "fixed", "fixedColor": "blue" } }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none" }
+    },
+    {
+      "id": 4,
+      "title": "Versión PostgreSQL",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 7, "y": 1, "w": 4, "h": 4 },
+      "targets": [{ "expr": "pg_static{instance=~\"$instance\"}", "legendFormat": "{{short_version}}" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none" },
+      "fieldConfig": { "defaults": { "mappings": [], "color": { "mode": "fixed", "fixedColor": "purple" } } }
+    },
+    {
+      "id": 5,
+      "title": "Max Connections configurado",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 11, "y": 1, "w": 3, "h": 4 },
+      "targets": [{ "expr": "pg_settings_max_connections{instance=~\"$instance\"}", "legendFormat": "Max" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" } } }
+    },
+    {
+      "id": 6,
+      "title": "Tamaño total BD (disco)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 14, "y": 1, "w": 4, "h": 4 },
+      "targets": [{ "expr": "sum(pg_database_size_bytes{instance=~\"$instance\", datname=~\"$datname\"})", "legendFormat": "Total" }],
+      "fieldConfig": { "defaults": { "unit": "bytes", "color": { "mode": "fixed", "fixedColor": "teal" } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none" }
+    },
+
+    {
+      "id": 10,
+      "title": "🔌 Conexiones",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 5, "w": 24, "h": 1 }
+    },
+    {
+      "id": 11,
+      "title": "Conexiones activas vs límite",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 6, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(pg_stat_activity_count{instance=~\"$instance\"}) by (state)", "legendFormat": "{{state}}" },
+        { "expr": "pg_settings_max_connections{instance=~\"$instance\"}", "legendFormat": "Máximo" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 12,
+      "title": "Uso de conexiones (%)",
+      "type": "gauge",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 12, "y": 6, "w": 6, "h": 8 },
+      "targets": [{
+        "expr": "sum(pg_stat_activity_count{instance=~\"$instance\"}) / on(instance) pg_settings_max_connections{instance=~\"$instance\"} * 100",
+        "legendFormat": "Uso %"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0, "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": 0 },
+            { "color": "yellow", "value": 70 },
+            { "color": "red", "value": 90 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "Tasa de nuevas conexiones/s",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 18, "y": 6, "w": 6, "h": 8 },
+      "targets": [{ "expr": "rate(pg_stat_database_xact_commit{instance=~\"$instance\", datname=~\"$datname\"}[5m])", "legendFormat": "{{datname}} commits/s" }],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+
+    {
+      "id": 20,
+      "title": "📊 Cache e I/O",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 14, "w": 24, "h": 1 }
+    },
+    {
+      "id": 21,
+      "title": "Cache Hit Ratio (%)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 15, "w": 12, "h": 8 },
+      "targets": [{
+        "expr": "rate(pg_stat_database_blks_hit{instance=~\"$instance\", datname=~\"$datname\"}[5m]) / (rate(pg_stat_database_blks_hit{instance=~\"$instance\", datname=~\"$datname\"}[5m]) + rate(pg_stat_database_blks_read{instance=~\"$instance\", datname=~\"$datname\"}[5m]) + 0.0001) * 100",
+        "legendFormat": "{{datname}} hit ratio"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": 0 },
+            { "color": "yellow", "value": 80 },
+            { "color": "green", "value": 95 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 22,
+      "title": "Bloques leídos: cache vs disco",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 12, "y": 15, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(pg_stat_database_blks_hit{instance=~\"$instance\", datname=~\"$datname\"}[5m]))", "legendFormat": "Cache (blks/s)" },
+        { "expr": "sum(rate(pg_stat_database_blks_read{instance=~\"$instance\", datname=~\"$datname\"}[5m]))", "legendFormat": "Disco (blks/s)" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+
+    {
+      "id": 30,
+      "title": "📈 Operaciones de Tuplas",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 23, "w": 24, "h": 1 }
+    },
+    {
+      "id": 31,
+      "title": "Tuplas: INSERT / UPDATE / DELETE",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 24, "w": 24, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(pg_stat_database_tup_inserted{instance=~\"$instance\", datname=~\"$datname\"}[5m]))", "legendFormat": "INSERT/s" },
+        { "expr": "sum(rate(pg_stat_database_tup_updated{instance=~\"$instance\", datname=~\"$datname\"}[5m]))", "legendFormat": "UPDATE/s" },
+        { "expr": "sum(rate(pg_stat_database_tup_deleted{instance=~\"$instance\", datname=~\"$datname\"}[5m]))", "legendFormat": "DELETE/s" },
+        { "expr": "sum(rate(pg_stat_database_tup_fetched{instance=~\"$instance\", datname=~\"$datname\"}[5m]))", "legendFormat": "FETCH/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+
+    {
+      "id": 40,
+      "title": "🔒 Bloqueos (Locks)",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 32, "w": 24, "h": 1 }
+    },
+    {
+      "id": 41,
+      "title": "Bloqueos por tipo",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 33, "w": 12, "h": 8 },
+      "targets": [{ "expr": "pg_locks_count{instance=~\"$instance\"}", "legendFormat": "{{mode}} (granted={{granted}})" }],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 42,
+      "title": "Consultas bloqueadas",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 12, "y": 33, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "pg_blocking_queries_blocked_count{instance=~\"$instance\"}", "legendFormat": "Bloqueadas" },
+        { "expr": "pg_blocking_queries_max_wait_seconds{instance=~\"$instance\"}", "legendFormat": "Espera máx (s)" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+
+    {
+      "id": 50,
+      "title": "🔄 Replicación",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 41, "w": 24, "h": 1 }
+    },
+    {
+      "id": 51,
+      "title": "Lag de replicación (segundos)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 42, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "pg_replication_lag{instance=~\"$instance\"}", "legendFormat": "{{instance}} lag (s)" },
+        { "expr": "pg_replication_lag_replay_lag_seconds{instance=~\"$instance\"}", "legendFormat": "{{replica}} replay lag" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": 0 },
+            { "color": "yellow", "value": 60 },
+            { "color": "red", "value": 300 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 52,
+      "title": "Lag de replicación (bytes)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 12, "y": 42, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "pg_replication_lag_sent_lag_bytes{instance=~\"$instance\"}", "legendFormat": "{{replica}} sent" },
+        { "expr": "pg_replication_lag_replay_lag_bytes{instance=~\"$instance\"}", "legendFormat": "{{replica}} replay" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+
+    {
+      "id": 60,
+      "title": "📝 WAL (Write-Ahead Log)",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 50, "w": 24, "h": 1 }
+    },
+    {
+      "id": 61,
+      "title": "WAL bytes generados/s",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 51, "w": 8, "h": 8 },
+      "targets": [{ "expr": "rate(pg_wal_stats_wal_bytes{instance=~\"$instance\"}[5m])", "legendFormat": "WAL bytes/s" }],
+      "fieldConfig": { "defaults": { "unit": "Bps" } }
+    },
+    {
+      "id": 62,
+      "title": "Full Page Images (FPI) ratio",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 8, "y": 51, "w": 8, "h": 8 },
+      "targets": [{
+        "expr": "rate(pg_wal_stats_wal_fpi{instance=~\"$instance\"}[5m]) / (rate(pg_wal_stats_wal_records{instance=~\"$instance\"}[5m]) + 0.001) * 100",
+        "legendFormat": "FPI ratio %"
+      }],
+      "fieldConfig": { "defaults": { "unit": "percent" } }
+    },
+    {
+      "id": 63,
+      "title": "Presión del buffer WAL",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 16, "y": 51, "w": 8, "h": 8 },
+      "targets": [{ "expr": "rate(pg_wal_stats_wal_buffers_full{instance=~\"$instance\"}[5m])", "legendFormat": "Buffer lleno/s" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": 0 },
+            { "color": "yellow", "value": 1 },
+            { "color": "red", "value": 10 }
+          ]}
+        }
+      }
+    },
+
+    {
+      "id": 70,
+      "title": "🧹 Mantenimiento (Autovacuum)",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 59, "w": 24, "h": 1 }
+    },
+    {
+      "id": 71,
+      "title": "Tablas con mayor bloat (tuplas muertas)",
+      "type": "bargauge",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 60, "w": 12, "h": 8 },
+      "targets": [{
+        "expr": "topk(10, pg_autovacuum_activity_dead_tup_ratio{instance=~\"$instance\"})",
+        "legendFormat": "{{schemaname}}.{{tablename}}"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": 0 },
+            { "color": "yellow", "value": 10 },
+            { "color": "red", "value": 20 }
+          ]}
+        }
+      },
+      "options": { "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 72,
+      "title": "Actividad autovacuum",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 12, "y": 60, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate(pg_stat_user_tables_autovacuum_count{instance=~\"$instance\"}[5m]))", "legendFormat": "Autovacuum/s" },
+        { "expr": "sum(rate(pg_stat_user_tables_autoanalyze_count{instance=~\"$instance\"}[5m]))", "legendFormat": "Autoanalyze/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+
+    {
+      "id": 80,
+      "title": "📋 Logs PostgreSQL (Loki)",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 68, "w": 24, "h": 1 }
+    },
+    {
+      "id": 81,
+      "title": "Logs de errores PostgreSQL",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "x": 0, "y": 69, "w": 24, "h": 10 },
+      "targets": [{
+        "expr": "{job=\"postgres\", level=~\"ERROR|FATAL|PANIC\"}",
+        "legendFormat": ""
+      }],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      }
+    },
+    {
+      "id": 82,
+      "title": "Tasa de logs por nivel",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "x": 0, "y": 79, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "sum(rate({job=\"postgres\", level=\"ERROR\"}[5m]))", "legendFormat": "ERROR/s" },
+        { "expr": "sum(rate({job=\"postgres\", level=\"WARNING\"}[5m]))", "legendFormat": "WARNING/s" },
+        { "expr": "sum(rate({job=\"postgres\", level=\"LOG\"}[5m]))", "legendFormat": "LOG/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 83,
+      "title": "Logs de bloqueos (lock waits)",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "x": 12, "y": 79, "w": 12, "h": 8 },
+      "targets": [{
+        "expr": "{job=\"postgres\"} |= \"lock\" |= \"wait\"",
+        "legendFormat": ""
+      }],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending"
+      }
+    }
+  ]
+}

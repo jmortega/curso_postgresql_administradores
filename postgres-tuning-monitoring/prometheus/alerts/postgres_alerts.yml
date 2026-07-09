@@ -1,0 +1,182 @@
+groups:
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Disponibilidad y estado
+  # ────────────────────────────────────────────────────────────────────────────
+  - name: postgres_availability
+    rules:
+
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL no disponible ({{ $labels.instance }})"
+          description: "El exporter no puede conectar con PostgreSQL en {{ $labels.instance }} desde hace más de 1 minuto."
+
+      - alert: PostgresRestarted
+        expr: time() - pg_postmaster_start_time_seconds < 60
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL reiniciado recientemente ({{ $labels.instance }})"
+          description: "PostgreSQL en {{ $labels.instance }} se reinició hace menos de 1 minuto."
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Conexiones
+  # ────────────────────────────────────────────────────────────────────────────
+  - name: postgres_connections
+    rules:
+
+      - alert: PostgresTooManyConnections
+        expr: >
+          sum(pg_stat_activity_count) by (instance)
+          / on(instance) pg_settings_max_connections * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Demasiadas conexiones activas ({{ $labels.instance }})"
+          description: "Uso de conexiones: {{ $value | printf \"%.1f\" }}% del límite máximo."
+
+      - alert: PostgresConnectionsExhausted
+        expr: >
+          sum(pg_stat_activity_count) by (instance)
+          / on(instance) pg_settings_max_connections * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Conexiones casi agotadas ({{ $labels.instance }})"
+          description: "Uso de conexiones crítico: {{ $value | printf \"%.1f\" }}%."
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Cache y rendimiento
+  # ────────────────────────────────────────────────────────────────────────────
+  - name: postgres_performance
+    rules:
+
+      - alert: PostgresLowCacheHitRatio
+        expr: >
+          (
+            sum(pg_stat_database_blks_hit) by (instance)
+            / (sum(pg_stat_database_blks_hit) by (instance) + sum(pg_stat_database_blks_read) by (instance))
+          ) * 100 < 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cache hit ratio bajo ({{ $labels.instance }})"
+          description: "Cache hit ratio: {{ $value | printf \"%.2f\" }}% (umbral: 90%)."
+
+      - alert: PostgresDeadlocks
+        expr: rate(pg_stat_database_deadlocks[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Deadlocks detectados en PostgreSQL ({{ $labels.instance }})"
+          description: "Tasa de deadlocks: {{ $value | printf \"%.4f\" }} por segundo en {{ $labels.datname }}."
+
+      - alert: PostgresLongRunningQuery
+        expr: >
+          pg_stat_activity_max_tx_duration{state="active"} > 300
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Consulta de larga duración ({{ $labels.instance }})"
+          description: "Consulta activa durante más de 5 minutos en {{ $labels.instance }}."
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Bloqueos (Locks)
+  # ────────────────────────────────────────────────────────────────────────────
+  - name: postgres_locks
+    rules:
+
+      - alert: PostgresLocksWaiting
+        expr: pg_locks_count{mode="ExclusiveLock", granted="false"} > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Bloqueos en espera detectados ({{ $labels.instance }})"
+          description: "{{ $value }} bloqueos exclusivos en cola de espera."
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Replicación
+  # ────────────────────────────────────────────────────────────────────────────
+  - name: postgres_replication
+    rules:
+
+      - alert: PostgresReplicationLagHigh
+        expr: pg_replication_lag > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Lag de replicación alto ({{ $labels.instance }})"
+          description: "Lag de replicación: {{ $value }}s en {{ $labels.instance }}."
+
+      - alert: PostgresReplicationLagCritical
+        expr: pg_replication_lag > 900
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Lag de replicación crítico ({{ $labels.instance }})"
+          description: "Lag de replicación: {{ $value }}s — riesgo de pérdida de datos."
+
+      - alert: PostgresReplicationSlotInactive
+        expr: pg_replication_slots_active == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slot de replicación inactivo ({{ $labels.instance }})"
+          description: "El slot {{ $labels.slot_name }} está inactivo."
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # WAL
+  # ────────────────────────────────────────────────────────────────────────────
+  - name: postgres_wal
+    rules:
+
+      - alert: PostgresWALBuffersFull
+        expr: >
+          rate(pg_stat_bgwriter_buffers_alloc_total[5m]) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Buffers WAL bajo presión ({{ $labels.instance }})"
+          description: "Tasa de allocación de buffers: {{ $value | printf \"%.4f\" }}."
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Almacenamiento y mantenimiento
+  # ────────────────────────────────────────────────────────────────────────────
+  - name: postgres_maintenance
+    rules:
+
+      - alert: PostgresTableBloatHigh
+        expr: >
+          (pg_stat_user_tables_n_dead_tup / (pg_stat_user_tables_n_live_tup + pg_stat_user_tables_n_dead_tup + 1)) * 100 > 20
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Bloat alto en tabla ({{ $labels.instance }})"
+          description: "Tabla {{ $labels.relname }} tiene {{ $value | printf \"%.1f\" }}% de tuplas muertas."
+
+      - alert: PostgresAutovacuumNotRunning
+        expr: >
+          time() - pg_stat_user_tables_last_autovacuum > 86400
+          and pg_stat_user_tables_n_dead_tup > 10000
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Autovacuum sin ejecutarse ({{ $labels.instance }})"
+          description: "Tabla {{ $labels.relname }} no ha sido vacuumed en más de 24h y tiene {{ $value }} tuplas muertas."

@@ -1,0 +1,92 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    tenant_id: ""
+    batchwait: 1s
+    batchsize: 1048576
+    timeout: 10s
+    backoff_config:
+      min_period: 500ms
+      max_period: 5m
+      max_retries: 10
+
+scrape_configs:
+
+  # ── Logs de PostgreSQL vía Docker (logging_collector=off → stderr) ──────────
+  # Promtail recoge los logs directamente del runtime de Docker.
+  # No se necesita montar /var/log/postgresql porque los logs van a stdout/stderr.
+  - job_name: postgres-docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: name
+            values: ["postgres"]
+    relabel_configs:
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/?(.*)"
+        target_label: container
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: service
+      - target_label: job
+        replacement: postgres
+    pipeline_stages:
+      - docker: {}
+      # Parseo del prefijo configurado con log_line_prefix='%t [%p] %q%u@%d '
+      # Ejemplo: 2026-06-04 10:30:00 UTC [123] pguser@appdb LOG:  mensaje
+      - regex:
+          expression: >-
+            (?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}[^[]*)\[(?P<pid>\d+)\]\s+(?P<user_db>\S*)\s+(?P<level>LOG|WARNING|ERROR|FATAL|PANIC|DEBUG|INFO|NOTICE|DETAIL|HINT|CONTEXT|STATEMENT):\s+(?P<message>.*)
+      - labels:
+          pid:
+          level:
+      # Separar usuario@base_de_datos si viene informado
+      - regex:
+          source: user_db
+          expression: "(?P<pg_user>[^@]*)@(?P<pg_database>.*)"
+      - labels:
+          pg_user:
+          pg_database:
+      # Clasificar severidad
+      - match:
+          selector: '{level=~"ERROR|FATAL|PANIC"}'
+          stages:
+            - labels:
+                severity: critical
+      - match:
+          selector: '{level="WARNING"}'
+          stages:
+            - labels:
+                severity: warning
+      - match:
+          selector: '{level=~"LOG|INFO|NOTICE|DETAIL|HINT"}'
+          stages:
+            - labels:
+                severity: info
+
+  # ── Resto de contenedores del stack ──────────────────────────────────────────
+  - job_name: docker-stack
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: label
+            values: ["com.docker.compose.project"]
+    relabel_configs:
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/?(.*)"
+        target_label: container
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: service
+      # Excluir postgres (ya cubierto arriba)
+      - source_labels: [service]
+        regex: "postgres"
+        action: drop
+    pipeline_stages:
+      - docker: {}

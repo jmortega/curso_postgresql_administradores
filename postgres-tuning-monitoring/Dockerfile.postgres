@@ -1,0 +1,27 @@
+FROM postgres:16-bookworm
+
+LABEL description="PostgreSQL 16 + hypopg + pgbadger + pgbench para laboratorio de Optimización, Tuning y Pruebas de Carga"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        # Extensión de índices hipotéticos
+        postgresql-16-hypopg \
+        # pgBadger (analiza logs y genera HTML)
+        pgbadger \
+        # Utilidades
+        curl \
+        vim \
+        procps \
+        bc \
+        perl \
+    && rm -rf /var/lib/apt/lists/*
+
+# pgbench ya viene incluido en el paquete postgresql-client de la imagen base
+
+RUN mkdir -p /scripts /pgbadger_reports /var/log/postgresql \
+    && chown -R postgres:postgres /scripts /pgbadger_reports /var/log/postgresql
+
+COPY scripts/ /scripts/
+RUN chmod +x /scripts/*.sh 2>/dev/null || true \
+    && chown -R postgres:postgres /scripts
+
+USER postgres

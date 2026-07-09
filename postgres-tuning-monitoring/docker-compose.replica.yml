@@ -1,0 +1,91 @@
+# ============================================================================
+# docker-compose.replica.yml
+# ============================================================================
+services:
+
+  # Contenedor init: corre como root, corrige permisos y termina.
+  # postgres-replica depende de él via service_completed_successfully.
+  postgres-replica-init:
+    image: postgres:16-alpine
+    container_name: postgres-replica-init
+    user: root
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+    command:
+      - sh
+      - -c
+      - |
+        chmod 700 /var/lib/postgresql/data
+        chown -R postgres:postgres /var/lib/postgresql/data
+        echo "Permisos corregidos."
+    networks:
+      - monitoring
+
+  postgres-replica:
+    image: postgres:16-alpine
+    container_name: postgres-replica
+    restart: unless-stopped
+    user: postgres
+    environment:
+      PGUSER: ${POSTGRES_USER:-pguser}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-pgpassword}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+    command:
+      - bash
+      - -c
+      - |
+        DATA_DIR=/var/lib/postgresql/data
+        if [ ! -f "$$DATA_DIR/PG_VERSION" ]; then
+          echo "Clonando desde el primario..."
+          until pg_basebackup \
+              -h postgres \
+              -D "$$DATA_DIR" \
+              -U "$$PGUSER" \
+              -Fp -Xs -P -R \
+              --checkpoint=fast; do
+            echo "Esperando al primario..."
+            sleep 3
+          done
+          echo "Clon completado."
+        else
+          echo "PGDATA ya existe — omitiendo clon."
+        fi
+        exec postgres \
+          -D "$$DATA_DIR" \
+          -c hot_standby=on \
+          -c wal_level=replica \
+          -c log_destination=stderr \
+          -c logging_collector=off
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres-replica-init:
+        condition: service_completed_successfully
+    networks:
+      - monitoring
+
+  postgres-exporter-replica:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: postgres-exporter-replica
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-pguser}:${POSTGRES_PASSWORD:-pgpassword}@postgres-replica:5432/postgres?sslmode=disable"
+      PG_EXPORTER_EXTEND_QUERY_PATH: /etc/postgres-exporter/queries.yaml
+    ports:
+      - "9188:9187"
+    volumes:
+      - ./postgres-exporter/queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+    depends_on:
+      - postgres-replica
+    networks:
+      - monitoring
+
+volumes:
+  postgres_replica_data:
+
+networks:
+  monitoring:
+    external: true

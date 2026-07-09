@@ -1,0 +1,64 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: "postgres-cluster"
+    environment: "production"
+
+# ─── Reglas de alerta ───────────────────────────────────────────────────────
+rule_files:
+  - "/etc/prometheus/alerts/postgres_alerts.yml"
+  - "/etc/prometheus/alerts/system_alerts.yml"
+
+# ─── Alertmanager ────────────────────────────────────────────────────────────
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# ─── Scrape targets ──────────────────────────────────────────────────────────
+scrape_configs:
+
+  # Prometheus propio
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # ── PostgreSQL Exporter ──────────────────────────────────────────────────
+  - job_name: "postgres-exporter"
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+        labels:
+          instance: "postgres-primary"
+          db_role: "primary"
+    # Métricas personalizadas para replicación, WAL, locks, etc.
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "pg_.*"
+        action: keep
+
+  # ── Loki (métricas internas) ──────────────────────────────────────────────
+  - job_name: "loki"
+    static_configs:
+      - targets: ["loki:3100"]
+
+  # ── Grafana (métricas internas) ───────────────────────────────────────────
+  - job_name: "grafana"
+    static_configs:
+      - targets: ["grafana:3000"]
+
+  # ── Node Exporter (si se añade) ───────────────────────────────────────────
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # ── PostgreSQL Exporter Replica──────────────────────────────────────────────────    
+  - job_name: "postgres-exporter-replica"
+    static_configs:
+      - targets: ["postgres-exporter-replica:9187"]
+        labels:
+          instance: "postgres-replica"
+          db_role: "replica"
