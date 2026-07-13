@@ -1,0 +1,2 @@
+2026-07-12 22:00:49 UTC [5443]: [1-1] user=,db=,app=,client= LOG:  redirecting log output to logging collector process
+2026-07-12 22:00:49 UTC [5443]: [2-1] user=,db=,app=,client= HINT:  Future log output will appear in directory "/data/patroni/pg_log".

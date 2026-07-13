@@ -1,0 +1,41 @@
+scope: pg-lab-cluster
+name: pg-replica
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: pg-replica:8008
+
+etcd3:
+  hosts: etcd:2379
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: pg-replica:5432
+  data_dir: /data/patroni
+  bin_dir: /usr/lib/postgresql/16/bin
+  pgpass: /tmp/pgpass1
+  authentication:
+    replication:
+      username: replicator
+      password: repl_lab_2025
+    superuser:
+      username: postgres
+      password: postgres_lab_2025
+    rewind:
+      username: rewind_user
+      password: rewind_lab_2025
+  parameters:
+    unix_socket_directories: /var/run/postgresql
+    hot_standby: "on"
+    wal_level: replica
+    log_destination: stderr
+    logging_collector: "on"
+    log_directory: /data/patroni/pg_log
+    log_filename: postgresql-%Y-%m-%d_%H%M%S.log
+    log_line_prefix: "%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h "
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: true    # Permite clonar desde esta réplica
+  nosync: false

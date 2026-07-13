@@ -1,0 +1,57 @@
+version: "3.8"
+
+# =============================================================
+# Laboratorio: Mantenimiento, Automatización y Sondas de Vida
+#
+# Un único contenedor PostgreSQL 16 con pg_cron preinstalado.
+# Todos los scripts se ejecutan con:
+#   docker exec -it pg-maint bash /scripts/<nombre>.sh
+#   docker exec -it pg-maint psql -U postgres -d dwh -f /scripts/<nombre>.sql
+#
+# Volúmenes del host montados en el contenedor:
+#   ./configs  → /etc/postgresql   (postgresql.conf + pg_hba.conf)
+#   ./scripts  → /scripts          (todos los scripts de práctica)
+#   ./backup   → /backup           (destino de backups lógicos y físicos)
+#   ./logs     → /var/log/pg_lab   (logs de scripts: vacuum, backup, probes)
+# =============================================================
+
+networks:
+  pg_maint_net:
+    driver: bridge
+
+volumes:
+  pg_maint_data:
+
+services:
+
+  pg-maint:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pg-maint-lab:16
+    container_name: pg-maint
+    hostname: pg-maint
+    networks:
+      - pg_maint_net
+    environment:
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres_lab
+      POSTGRES_DB:       dwh
+      PGDATA:            /var/lib/postgresql/data
+    volumes:
+      - pg_maint_data:/var/lib/postgresql/data
+      - ./configs/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./configs/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./scripts:/scripts
+      - ./backup:/backup
+      - ./logs:/var/log/pg_lab
+    ports:
+      - "5432:5432"
+    command: ["/scripts/entrypoint.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dwh || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 25s
+    restart: unless-stopped

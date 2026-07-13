@@ -1,0 +1,86 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions-primary.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+
+  # Logs principales de PostgreSQL (primario)
+  - job_name: postgresql-primary
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: postgresql
+          node: pg-primary
+          role: primary
+          cluster: pg-lab-cluster
+          __path__: /data/patroni/pg_log/*.log
+    pipeline_stages:
+      - multiline:
+          firstline: '^\d{4}-\d{2}-\d{2}'
+          max_wait_time: 3s
+      - regex:
+          expression: >-
+            ^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+ \w+)
+            \[(?P<pid>\d+)\].*?(?P<level>LOG|WARNING|ERROR|FATAL|PANIC|DEBUG|INFO):\s+(?P<message>.*)
+      - labels:
+          level:
+          pid:
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02 15:04:05.000 MST"
+
+  # Logs de scripts de backup
+  - job_name: pg-backup-scripts
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: pg-backup
+          node: pg-primary
+          cluster: pg-lab-cluster
+          __path__: /var/log/pg_scripts/backup.log
+    pipeline_stages:
+      - regex:
+          expression: '^\[(?P<timestamp>[^\]]+)\]\s+(?P<status>INICIO|FIN|PASS|FAIL|INFO|ERROR)\s*:?\s*(?P<message>.*)'
+      - labels:
+          status:
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02 15:04:05"
+
+  # Logs de validación de backups
+  - job_name: pg-validate
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: pg-validate
+          node: pg-primary
+          cluster: pg-lab-cluster
+          __path__: /var/log/pg_scripts/validate.log
+    pipeline_stages:
+      - regex:
+          expression: '^\[(?P<timestamp>[^\]]+)\]\s+(?P<result>PASS|FAIL).*'
+      - labels:
+          result:
+
+  # Logs de Patroni (via stderr redirigido)
+  - job_name: patroni-primary
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: patroni
+          node: pg-primary
+          cluster: pg-lab-cluster
+          __path__: /var/log/pg_scripts/patroni.log
+    pipeline_stages:
+      - regex:
+          expression: >-
+            ^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d+)
+            (?P<level>INFO|WARNING|ERROR|DEBUG|CRITICAL)\s+(?P<message>.*)
+      - labels:
+          level:

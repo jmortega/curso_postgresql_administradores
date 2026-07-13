@@ -1,0 +1,167 @@
+[2026-07-12 20:58:38] INICIO: pg_basebackup --- formato=dir compress=9 destino=/backup/basebackup/20260712_205838
+pg_basebackup: error: invalid output format "dir", must be "plain" or "tar"
+[2026-07-12 21:00:51] INICIO: pg_basebackup --- formato=dir compress=9 destino=/backup/basebackup/20260712_210051
+pg_basebackup: error: invalid output format "dir", must be "plain" or "tar"
+[2026-07-12 21:02:58] INICIO: pg_basebackup --- formato=dir compress=9 destino=/backup/basebackup/20260712_210258
+pg_basebackup: error: invalid output format "dir", must be "plain" or "tar"
+[2026-07-12 21:04:14] INICIO: pg_basebackup --- formato=plain compress=9 destino=/backup/basebackup/20260712_210414
+pg_basebackup: error: only tar mode backups can be compressed
+pg_basebackup: hint: Try "pg_basebackup --help" for more information.
+[2026-07-12 21:04:53] INICIO: pg_basebackup --- formato=plain compress=9 destino=/backup/basebackup/20260712_210453
+pg_basebackup: error: only tar mode backups can be compressed
+pg_basebackup: hint: Try "pg_basebackup --help" for more information.
+[2026-07-12 21:04:53] FAIL: pg_basebackup terminó con código 1
+[2026-07-12 21:06:10] INICIO: pg_basebackup --- formato=plain compress=9 destino=/backup/basebackup/20260712_210610
+pg_basebackup: initiating base backup, waiting for checkpoint to complete
+pg_basebackup: checkpoint completed
+pg_basebackup: write-ahead log start point: 0/6000028 on timeline 1
+pg_basebackup: starting background WAL receiver
+pg_basebackup: created temporary replication slot "pg_basebackup_2158"
+23361/23361 kB (100%), 0/1 tablespace (...0260712_210610/global/pg_control)
+23361/23361 kB (100%), 1/1 tablespace                                         
+pg_basebackup: write-ahead log end point: 0/6000100
+pg_basebackup: waiting for background process to finish streaming ...
+pg_basebackup: syncing data to disk ...
+pg_basebackup: renaming backup_manifest.tmp to backup_manifest
+pg_basebackup: base backup completed
+[2026-07-12 21:06:34] INICIO: pg_basebackup --- formato=plain compress=9 destino=/backup/basebackup/20260712_210634
+pg_basebackup: initiating base backup, waiting for checkpoint to complete
+pg_basebackup: checkpoint completed
+pg_basebackup: write-ahead log start point: 0/8000028 on timeline 1
+pg_basebackup: starting background WAL receiver
+pg_basebackup: created temporary replication slot "pg_basebackup_2195"
+23363/23363 kB (100%), 0/1 tablespace (...0260712_210634/global/pg_control)
+23363/23363 kB (100%), 1/1 tablespace                                         
+pg_basebackup: write-ahead log end point: 0/8000100
+pg_basebackup: waiting for background process to finish streaming ...
+pg_basebackup: syncing data to disk ...
+pg_basebackup: renaming backup_manifest.tmp to backup_manifest
+pg_basebackup: base backup completed
+[2026-07-12 21:06:48] INICIO: pg_basebackup --- formato=plain compress=9 destino=/backup/basebackup/20260712_210648
+pg_basebackup: initiating base backup, waiting for checkpoint to complete
+pg_basebackup: checkpoint completed
+pg_basebackup: write-ahead log start point: 0/A000028 on timeline 1
+pg_basebackup: starting background WAL receiver
+pg_basebackup: created temporary replication slot "pg_basebackup_2225"
+23365/23365 kB (100%), 0/1 tablespace (...0260712_210648/global/pg_control)
+23365/23365 kB (100%), 1/1 tablespace                                         
+pg_basebackup: write-ahead log end point: 0/A000100
+pg_basebackup: waiting for background process to finish streaming ...
+pg_basebackup: syncing data to disk ...
+pg_basebackup: renaming backup_manifest.tmp to backup_manifest
+pg_basebackup: base backup completed
+[2026-07-12 21:06:48] PASS: backup completado --- tamaño=39M ruta=/backup/basebackup/20260712_210648
+[2026-07-12 21:06:48] INFO: limpiando backups con más de 7 días
+[2026-07-12 21:06:48] FIN: proceso de backup finalizado
+[2026-07-12 21:12:49] INICIO: pg_basebackup --- formato=plain compress=9 destino=/backup/basebackup/20260712_211249
+pg_basebackup: initiating base backup, waiting for checkpoint to complete
+pg_basebackup: checkpoint completed
+pg_basebackup: write-ahead log start point: 0/D000028 on timeline 1
+pg_basebackup: starting background WAL receiver
+pg_basebackup: created temporary replication slot "pg_basebackup_2530"
+23385/23385 kB (100%), 0/1 tablespace (...0260712_211249/global/pg_control)
+23385/23385 kB (100%), 1/1 tablespace                                         
+pg_basebackup: write-ahead log end point: 0/D000100
+pg_basebackup: waiting for background process to finish streaming ...
+pg_basebackup: syncing data to disk ...
+pg_basebackup: renaming backup_manifest.tmp to backup_manifest
+pg_basebackup: base backup completed
+[2026-07-12 21:12:49] PASS: backup completado --- tamaño=39M ruta=/backup/basebackup/20260712_211249
+[2026-07-12 21:12:49] INFO: limpiando backups con más de 7 días
+[2026-07-12 21:12:49] FIN: proceso de backup finalizado
+[2026-07-12 21:13:14] INICIO: pg_basebackup --- formato=tar compress=9 destino=/backup/basebackup/20260712_211314
+pg_basebackup: initiating base backup, waiting for checkpoint to complete
+pg_basebackup: checkpoint completed
+pg_basebackup: write-ahead log start point: 0/F000028 on timeline 1
+pg_basebackup: starting background WAL receiver
+pg_basebackup: created temporary replication slot "pg_basebackup_2579"
+14289/23376 kB (61%), 0/1 tablespace (...ckup/20260712_211314/base.tar.gz)
+23388/23388 kB (100%), 0/1 tablespace (...ckup/20260712_211314/base.tar.gz)
+23388/23388 kB (100%), 1/1 tablespace                                         
+pg_basebackup: write-ahead log end point: 0/F000138
+pg_basebackup: waiting for background process to finish streaming ...
+pg_basebackup: syncing data to disk ...
+pg_basebackup: renaming backup_manifest.tmp to backup_manifest
+pg_basebackup: base backup completed
+[2026-07-12 21:13:14] PASS: backup completado --- tamaño=3.2M ruta=/backup/basebackup/20260712_211314
+[2026-07-12 21:13:14] INFO: limpiando backups con más de 7 días
+[2026-07-12 21:13:14] FIN: proceso de backup finalizado
+[2026-07-12 21:15:24] INICIO: pg_basebackup --- formato=plain compress=9 destino=/backup/basebackup/20260712_211524
+pg_basebackup: initiating base backup, waiting for checkpoint to complete
+pg_basebackup: checkpoint completed
+pg_basebackup: write-ahead log start point: 0/11000028 on timeline 1
+pg_basebackup: starting background WAL receiver
+pg_basebackup: created temporary replication slot "pg_basebackup_2710"
+23395/23395 kB (100%), 0/1 tablespace (...0260712_211524/global/pg_control)
+23395/23395 kB (100%), 1/1 tablespace                                         
+pg_basebackup: write-ahead log end point: 0/11000100
+pg_basebackup: waiting for background process to finish streaming ...
+pg_basebackup: syncing data to disk ...
+pg_basebackup: renaming backup_manifest.tmp to backup_manifest
+pg_basebackup: base backup completed
+[2026-07-12 21:15:24] PASS: backup completado --- tamaño=39M ruta=/backup/basebackup/20260712_211524
+[2026-07-12 21:15:24] INFO: limpiando backups con más de 7 días
+[2026-07-12 21:15:24] FIN: proceso de backup finalizado
+[2026-07-12 21:20:13] INICIO: pg_basebackup --- formato=plain compress=9 destino=/backup/basebackup/20260712_212013
+pg_basebackup: initiating base backup, waiting for checkpoint to complete
+pg_basebackup: checkpoint completed
+pg_basebackup: write-ahead log start point: 0/13000028 on timeline 1
+pg_basebackup: starting background WAL receiver
+pg_basebackup: created temporary replication slot "pg_basebackup_2983"
+23411/23411 kB (100%), 0/1 tablespace (...0260712_212013/global/pg_control)
+23411/23411 kB (100%), 1/1 tablespace                                         
+pg_basebackup: write-ahead log end point: 0/13000100
+pg_basebackup: waiting for background process to finish streaming ...
+pg_basebackup: syncing data to disk ...
+pg_basebackup: renaming backup_manifest.tmp to backup_manifest
+pg_basebackup: base backup completed
+[2026-07-12 21:20:13] PASS: backup completado --- tamaño=39M ruta=/backup/basebackup/20260712_212013
+[2026-07-12 21:20:13] INFO: limpiando backups con más de 7 días
+[2026-07-12 21:20:13] FIN: proceso de backup finalizado
+[2026-07-12 21:37:13] INICIO: pg_basebackup --- formato=plain compress=9 destino=/backup/basebackup/20260712_213713
+pg_basebackup: initiating base backup, waiting for checkpoint to complete
+pg_basebackup: checkpoint completed
+pg_basebackup: write-ahead log start point: 0/16000028 on timeline 1
+pg_basebackup: starting background WAL receiver
+pg_basebackup: created temporary replication slot "pg_basebackup_3789"
+23462/23462 kB (100%), 0/1 tablespace (...0260712_213713/global/pg_control)
+23462/23462 kB (100%), 1/1 tablespace                                         
+pg_basebackup: write-ahead log end point: 0/16000100
+pg_basebackup: waiting for background process to finish streaming ...
+pg_basebackup: syncing data to disk ...
+pg_basebackup: renaming backup_manifest.tmp to backup_manifest
+pg_basebackup: base backup completed
+[2026-07-12 21:37:13] PASS: backup completado --- tamaño=39M ruta=/backup/basebackup/20260712_213713
+[2026-07-12 21:37:13] INFO: limpiando backups con más de 7 días
+[2026-07-12 21:37:13] FIN: proceso de backup finalizado
+[2026-07-12 21:55:15] INICIO: pg_basebackup --- formato=plain compress=9 destino=/backup/basebackup/20260712_215515
+pg_basebackup: initiating base backup, waiting for checkpoint to complete
+pg_basebackup: checkpoint completed
+pg_basebackup: write-ahead log start point: 0/1E000028 on timeline 1
+pg_basebackup: starting background WAL receiver
+pg_basebackup: created temporary replication slot "pg_basebackup_4730"
+32101/32101 kB (100%), 0/1 tablespace (...0260712_215515/global/pg_control)
+32101/32101 kB (100%), 1/1 tablespace                                         
+pg_basebackup: write-ahead log end point: 0/1E000100
+pg_basebackup: waiting for background process to finish streaming ...
+pg_basebackup: syncing data to disk ...
+pg_basebackup: renaming backup_manifest.tmp to backup_manifest
+pg_basebackup: base backup completed
+[2026-07-12 21:55:15] PASS: backup completado --- tamaño=48M ruta=/backup/basebackup/20260712_215515
+[2026-07-12 21:55:15] INFO: limpiando backups con más de 7 días
+[2026-07-12 21:55:15] FIN: proceso de backup finalizado
+[2026-07-12 21:57:00] INICIO: recuperación PITR hasta '2026-07-12 21:54:48'
+[2026-07-12 21:57:00] INFO: usando backup /backup/basebackup/20260712_215515/
+[2026-07-12 21:57:00] INFO: deteniendo PostgreSQL via pg_ctl
+[2026-07-12 21:57:00] INFO: renombrando PGDATA actual a /data/patroni_pre_recovery_20260712_215700
+[2026-07-12 21:57:00] INFO: restaurando base backup...
+[2026-07-12 22:00:48] INICIO: recuperación PITR hasta '2026-07-12 21:54:48'
+[2026-07-12 22:00:48] INFO: usando backup /backup/basebackup/20260712_215515/
+[2026-07-12 22:00:48] INFO: renombrando PGDATA actual a /data/patroni_pre_recovery_20260712_220048
+[2026-07-12 22:00:48] INFO: restaurando base backup...
+[2026-07-12 22:00:48] INFO: configuración PITR escrita en postgresql.auto.conf
+[2026-07-12 22:00:48] INFO: iniciando PostgreSQL en modo recuperación...
+[2026-07-12 22:00:48] INFO: monitorizando recuperación (máx. 5 min)...
+[2026-07-12 22:00:48] PASS: PostgreSQL disponible tras recuperación PITR
+[2026-07-12 22:00:48] INFO: verificando datos recuperados...
+[2026-07-12 22:00:48] FIN: recuperación PITR completada --- target='2026-07-12 21:54:48'

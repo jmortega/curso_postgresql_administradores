@@ -1,0 +1,239 @@
+version: "3.8"
+
+# =============================================================
+# LAB: Backup & Recovery en Clúster PostgreSQL
+# Stack: PostgreSQL + Patroni + Loki + Grafana + Promtail
+# =============================================================
+
+networks:
+  pg_net2:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+
+volumes:
+  etcd_data:
+  pg_primary_data:
+  pg_replica_data:
+  wal_archive:
+  backups:
+  loki_data:
+  grafana_data:
+
+services:
+
+  # -----------------------------------------------------------
+  # ETCD — almacén de configuración distribuida para Patroni
+  # -----------------------------------------------------------
+  etcd:
+    image: gcr.io/etcd-development/etcd:v3.5.17
+    container_name: etcd
+    hostname: etcd
+    networks:
+        pg_net2:
+            ipv4_address: 172.21.0.10
+    entrypoint: /usr/local/bin/etcd
+    command:
+        - "--name=etcd0"
+        - "--initial-advertise-peer-urls=http://etcd:2380"
+        - "--listen-peer-urls=http://0.0.0.0:2380"
+        - "--listen-client-urls=http://0.0.0.0:2379"
+        - "--advertise-client-urls=http://etcd:2379"
+        - "--initial-cluster=etcd0=http://etcd:2380"
+        - "--initial-cluster-state=new"
+        - "--initial-cluster-token=pg-lab-cluster"
+        - "--data-dir=/bitnami/etcd/data"
+    volumes:
+        - etcd_data:/bitnami/etcd/data
+    healthcheck:
+        test: ["CMD", "etcdctl", "--endpoints=http://127.0.0.1:2379", "endpoint", "health"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+    restart: unless-stopped
+
+  # -----------------------------------------------------------
+  # NODO PRIMARIO PostgreSQL + Patroni
+  # -----------------------------------------------------------
+  pg-primary:
+    image: patroni-pg:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.patroni
+    container_name: pg-primary
+    hostname: pg-primary
+    networks:
+      pg_net2:
+        ipv4_address: 172.21.0.20
+    environment:
+      PATRONI_NAME: pg-primary
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_RESTAPI_CONNECT_ADDRESS: pg-primary:8008
+      PATRONI_ETCD3_HOSTS: etcd:2379
+      PATRONI_POSTGRESQL_LISTEN: 0.0.0.0:5432
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: pg-primary:5432
+      PATRONI_POSTGRESQL_DATA_DIR: /data/patroni
+      PATRONI_SUPERUSER_USERNAME: postgres
+      PATRONI_SUPERUSER_PASSWORD: postgres_lab_2025
+      PATRONI_REPLICATION_USERNAME: replicator
+      PATRONI_REPLICATION_PASSWORD: repl_lab_2025
+      PATRONI_SCOPE: pg-lab-cluster
+    volumes:
+      - pg_primary_data:/data
+      - wal_archive:/mnt/wal_archive
+      - backups:/backup
+      - ./configs/patroni/patroni-primary.yml:/etc/patroni/patroni.yml:ro
+      - ./scripts:/scripts
+      - ./logs:/var/log/pg_scripts
+    ports:
+      - "5432:5432"
+      - "8008:8008"
+    depends_on:
+      etcd:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # -----------------------------------------------------------
+  # NODO RÉPLICA PostgreSQL + Patroni
+  # -----------------------------------------------------------
+  pg-replica:
+    image: patroni-pg:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.patroni
+    container_name: pg-replica
+    hostname: pg-replica
+    networks:
+      pg_net2:
+        ipv4_address: 172.21.0.21
+    environment:
+      PATRONI_NAME: pg-replica
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_RESTAPI_CONNECT_ADDRESS: pg-replica:8008
+      PATRONI_ETCD3_HOSTS: etcd:2379
+      PATRONI_POSTGRESQL_LISTEN: 0.0.0.0:5432
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: pg-replica:5432
+      PATRONI_POSTGRESQL_DATA_DIR: /data/patroni
+      PATRONI_SUPERUSER_USERNAME: postgres
+      PATRONI_SUPERUSER_PASSWORD: postgres_lab_2025
+      PATRONI_REPLICATION_USERNAME: replicator
+      PATRONI_REPLICATION_PASSWORD: repl_lab_2025
+      PATRONI_SCOPE: pg-lab-cluster
+    volumes:
+      - pg_replica_data:/data
+      - wal_archive:/mnt/wal_archive
+      - ./configs/patroni/patroni-replica.yml:/etc/patroni/patroni.yml:ro
+      - ./scripts:/scripts
+    ports:
+      - "5433:5432"
+      - "8009:8008"
+    depends_on:
+        etcd:
+            condition: service_healthy
+        pg-primary:
+            condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # -----------------------------------------------------------
+  # LOKI — agregador de logs
+  # -----------------------------------------------------------
+  loki:
+    image: grafana/loki:2.9.3
+    container_name: loki
+    hostname: loki
+    networks:
+      pg_net2:
+        ipv4_address: 172.21.0.30
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/loki
+      - ./configs/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+    command: -config.file=/etc/loki/local-config.yaml
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # -----------------------------------------------------------
+  # PROMTAIL — agente de recolección de logs (primario)
+  # -----------------------------------------------------------
+  promtail-primary:
+    image: grafana/promtail:2.9.3
+    container_name: promtail-primary
+    hostname: promtail-primary
+    networks:
+      pg_net2:
+        ipv4_address: 172.21.0.40
+    volumes:
+      - ./configs/promtail/promtail-primary.yml:/etc/promtail/config.yml:ro
+      - pg_primary_data:/data:ro
+      - ./logs:/var/log/pg_scripts:ro
+      - /var/log:/var/log/host:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      loki:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # -----------------------------------------------------------
+  # PROMTAIL — agente de recolección de logs (réplica)
+  # -----------------------------------------------------------
+  promtail-replica:
+    image: grafana/promtail:2.9.3
+    container_name: promtail-replica
+    hostname: promtail-replica
+    networks:
+      pg_net2:
+        ipv4_address: 172.21.0.41
+    volumes:
+      - ./configs/promtail/promtail-replica.yml:/etc/promtail/config.yml:ro
+      - pg_replica_data:/data:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      loki:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # -----------------------------------------------------------
+  # GRAFANA — dashboards y alertas
+  # -----------------------------------------------------------
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: grafana
+    hostname: grafana
+    networks:
+      pg_net2:
+        ipv4_address: 172.21.0.50
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: grafana_lab_2025
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./configs/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./configs/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+    depends_on:
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped

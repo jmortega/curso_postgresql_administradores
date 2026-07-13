@@ -1,0 +1,46 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions-replica.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+
+  # Logs de PostgreSQL (réplica)
+  - job_name: postgresql-replica
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: postgresql
+          node: pg-replica
+          role: replica
+          cluster: pg-lab-cluster
+          __path__: /data/patroni/pg_log/*.log
+    pipeline_stages:
+      - multiline:
+          firstline: '^\d{4}-\d{2}-\d{2}'
+          max_wait_time: 3s
+      - regex:
+          expression: >-
+            ^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+ \w+)
+            \[(?P<pid>\d+)\].*?(?P<level>LOG|WARNING|ERROR|FATAL|PANIC|DEBUG|INFO):\s+(?P<message>.*)
+      - labels:
+          level:
+          pid:
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02 15:04:05.000 MST"
+
+  # Patroni réplica
+  - job_name: patroni-replica
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: patroni
+          node: pg-replica
+          cluster: pg-lab-cluster
+          __path__: /var/log/pg_scripts/patroni.log

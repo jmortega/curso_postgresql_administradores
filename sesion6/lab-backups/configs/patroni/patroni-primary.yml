@@ -1,0 +1,90 @@
+scope: pg-lab-cluster
+name: pg-primary
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: pg-primary:8008
+
+etcd3:
+  hosts: etcd:2379
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576   # 1 MB
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        # WAL y archivado
+        wal_level: replica
+        archive_mode: "on"
+        archive_command: >-
+          test ! -f /mnt/wal_archive/%f && cp %p /mnt/wal_archive/%f
+        archive_timeout: 60
+        # Replicación
+        max_wal_senders: 5
+        max_replication_slots: 5
+        wal_keep_size: 512
+        hot_standby: "on"
+        # Logging
+        log_destination: stderr
+        logging_collector: "on"
+        log_directory: /data/patroni/pg_log
+        log_filename: postgresql-%Y-%m-%d_%H%M%S.log
+        log_rotation_age: 1d
+        log_rotation_size: 100MB
+        log_min_messages: warning
+        log_connections: "on"
+        log_disconnections: "on"
+        log_checkpoints: "on"
+        log_line_prefix: "%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h "
+        # Performance
+        shared_buffers: 256MB
+        effective_cache_size: 768MB
+        checkpoint_completion_target: 0.9
+
+  initdb:
+    - encoding: UTF8
+    - data-checksums
+
+  pg_hba:
+    - local all all trust
+    - local replication all trust
+    - host replication replicator 172.21.0.0/24 scram-sha-256
+    - host all all 172.21.0.0/24 scram-sha-256
+    - host all all 0.0.0.0/0 scram-sha-256
+
+  users:
+    admin:
+      password: admin_lab_2025
+      options:
+        - createrole
+        - createdb
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: pg-primary:5432
+  data_dir: /data/patroni
+  bin_dir: /usr/lib/postgresql/16/bin
+  pgpass: /tmp/pgpass0
+  authentication:
+    replication:
+      username: replicator
+      password: repl_lab_2025
+    superuser:
+      username: postgres
+      password: postgres_lab_2025
+    rewind:
+      username: rewind_user
+      password: rewind_lab_2025
+  parameters:
+    unix_socket_directories: /var/run/postgresql
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false
+  nosync: false
