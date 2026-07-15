@@ -1,0 +1,89 @@
+scope: pg-patch-cluster
+name: pgprimary
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: pgprimary:8008
+
+etcd3:
+  hosts: etcd:2379
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    # FIX: gestión dinámica de replicación síncrona. Con
+    # synchronous_mode: true, Patroni calcula y reescribe
+    # synchronous_standby_names automáticamente en cada cambio de
+    # topología (switchover/failover), eligiendo una réplica sana
+    # como síncrona. Una lista estática de nombres (como se tenía
+    # antes) deja de tener sentido en cuanto el líder cambia, porque
+    # el propio nombre que estaba en la lista pasa a ser el primario.
+    synchronous_mode: true
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        wal_level:                replica
+        archive_mode:             "on"
+        archive_command:          "test ! -f /mnt/wal_archive/%f && cp %p /mnt/wal_archive/%f"
+        archive_timeout:          60
+        max_wal_senders:          10
+        max_replication_slots:    10
+        wal_keep_size:            512
+        hot_standby:              "on"
+        hot_standby_feedback:     "on"
+        synchronous_commit:       "on"
+        # synchronous_standby_names: gestionado dinámicamente por
+        # Patroni (ver synchronous_mode arriba) — NO fijarlo aquí,
+        # Patroni lo escribe en postgresql.auto.conf en tiempo real.
+        log_destination:          stderr
+        logging_collector:        "off"
+        log_min_messages:         warning
+        log_connections:          "on"
+        log_replication_commands: "on"
+        log_line_prefix:          "%t [%p] %u@%d "
+        shared_buffers:           256MB
+        effective_cache_size:     768MB
+  initdb:
+    - encoding: UTF8
+    - data-checksums
+  pg_hba:
+    - local all all trust
+    - local replication all trust
+    - host  replication  replicator  172.28.0.0/24  scram-sha-256
+    - host  all          postgres    172.28.0.0/24  trust
+    - host  all          all         172.28.0.0/24  scram-sha-256
+    - host  all          all         0.0.0.0/0      scram-sha-256
+  users:
+    app_user:
+      password: app_pass_lab
+      options:
+        - createdb
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: pgprimary:5432
+  data_dir: /data/patroni
+  bin_dir: /usr/lib/postgresql/16/bin
+  pgpass: /tmp/pgpass0
+  authentication:
+    replication:
+      username: replicator
+      password: repl_lab_2025
+    superuser:
+      username: postgres
+      password: postgres_lab
+    rewind:
+      username: postgres
+      password: postgres_lab
+  parameters:
+    unix_socket_directories: /var/run/postgresql
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false
+  nosync: false

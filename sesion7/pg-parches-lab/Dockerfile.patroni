@@ -1,0 +1,46 @@
+FROM postgres:16-bookworm
+
+LABEL description="PostgreSQL 16 + Patroni para laboratorio de despliegue de parches"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3 \
+        python3-pip \
+        python3-psycopg2 \
+        curl \
+        wget \
+        vim \
+        procps \
+        rsync \
+        iputils-ping \
+        netcat-openbsd \
+        gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && gosu nobody true
+
+# Instalar Patroni con soporte etcd3
+RUN pip3 install --no-cache-dir --break-system-packages \
+        patroni[etcd3]==3.3.0 \
+        python-etcd \
+        psycopg2-binary
+
+# Directorios necesarios
+# FIX: chown incluye /data (el padre), no solo /data/patroni, porque
+# el compose monta el volumen en /data — si solo se corrige el dueño
+# de la subcarpeta, postgres no puede renombrar/eliminar /data/patroni
+# (necesita permiso de escritura en el padre para esa operación).
+# chmod 700 explícito porque PostgreSQL exige permisos exactos en
+# PGDATA (0700 o 0750); mkdir -p por sí solo deja 0755 por el umask.
+RUN mkdir -p /data/patroni /mnt/wal_archive /backup /scripts \
+    && chown -R postgres:postgres /data /mnt/wal_archive /backup \
+    && chmod 700 /data/patroni
+
+COPY scripts/ /scripts/
+RUN chmod +x /scripts/*.sh 2>/dev/null || true \
+    && chown -R postgres:postgres /scripts
+
+# Sin USER postgres: el compose arranca como root para corregir
+# permisos del volumen y luego hace exec gosu postgres patroni.
+# gosu reemplaza el proceso (exec semántico) garantizando que
+# Patroni sea PID 1 y reciba las señales de Docker correctamente.
+ENTRYPOINT ["/bin/bash", "-c"]
+CMD ["exec gosu postgres patroni /etc/patroni/patroni.yml"]

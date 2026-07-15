@@ -1,0 +1,164 @@
+version: "3.8"
+
+# =============================================================
+# Laboratorio: Replicación y Failover PostgreSQL
+#
+# Simula un clúster de 3 nodos en una sola máquina:
+#   pg-primary   → primario  (puerto 5432)
+#   pg-standby1  → réplica síncrona  (puerto 5433)
+#   pg-standby2  → réplica asíncrona (puerto 5434)
+#
+# Todos los nodos tienen repmgr instalado y repmgrd activo.
+# =============================================================
+
+networks:
+  pg_cluster_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/24
+
+volumes:
+  pg_primary_data:
+  pg_standby1_data:
+  pg_standby2_data:
+  wal_archive:
+
+services:
+
+  # -----------------------------------------------------------
+  # NODO PRIMARIO
+  # -----------------------------------------------------------
+  pg-primary:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pg-repmgr:16
+    container_name: pg-primary
+    user: root
+    hostname: pg-primary
+    networks:
+      pg_cluster_net:
+        ipv4_address: 172.29.0.10
+    environment:
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres_lab
+      POSTGRES_DB:       dwh
+      PGDATA:            /var/lib/postgresql/data
+      NODE_ID:           "1"
+      NODE_NAME:         pg-primary
+      NODE_ROLE:         primary
+      REPMGR_PASSWORD:   repmgr_lab
+      REPL_PASSWORD:     repl_lab_2025
+    volumes:
+      - pg_primary_data:/var/lib/postgresql/data
+      - wal_archive:/mnt/wal_archive
+      - ./configs/primary/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./configs/primary/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./configs/repmgr/repmgr-primary.conf:/etc/repmgr/repmgr.conf:ro
+      - ./scripts:/scripts
+    ports:
+      - "5432:5432"
+    command: ["/scripts/entrypoint_primary.sh"]
+    healthcheck:
+      # Usa el socket Unix local (siempre disponible cuando postgres corre).
+      # Comprueba que repmgr existe Y que el fichero centinela existe
+      # (el entrypoint lo crea justo antes del exec postgres final).
+      test: ["CMD-SHELL", "test -f /tmp/primary_ready && psql -U postgres -c 'SELECT 1' -q --no-align -t 2>/dev/null | grep -q 1 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 10s
+    restart: unless-stopped
+
+  # -----------------------------------------------------------
+  # STANDBY 1 — réplica síncrona (alta prioridad de failover)
+  # FIX: pull_policy: never para usar la imagen local pg-repmgr:16
+  #      construida por pg-primary en lugar de intentar pull desde
+  #      Docker Hub (donde no existe).
+  # -----------------------------------------------------------
+  pg-standby1:
+    image: pg-repmgr:16
+    pull_policy: never
+    container_name: pg-standby1
+    user: root
+    hostname: pg-standby1
+    networks:
+      pg_cluster_net:
+        ipv4_address: 172.29.0.11
+    environment:
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres_lab
+      PGDATA:            /var/lib/postgresql/data
+      NODE_ID:           "2"
+      NODE_NAME:         pgstandby1
+      NODE_ROLE:         standby
+      REPMGR_PASSWORD:   repmgr_lab
+      REPL_PASSWORD:     repl_lab_2025
+      PRIMARY_HOST:      pg-primary
+      PRIMARY_PORT:      "5432"
+      REPMGR_PRIORITY:   "100"
+    volumes:
+      - pg_standby1_data:/var/lib/postgresql/data
+      - wal_archive:/mnt/wal_archive
+      - ./configs/standby1/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./configs/repmgr/repmgr-standby1.conf:/etc/repmgr/repmgr.conf:ro
+      - ./scripts:/scripts
+    ports:
+      - "5433:5432"
+    command: ["/scripts/entrypoint_standby.sh"]
+    depends_on:
+      pg-primary:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+    restart: unless-stopped
+
+  # -----------------------------------------------------------
+  # STANDBY 2 — réplica asíncrona (baja prioridad)
+  # FIX: ídem que standby1, pull_policy: never
+  # -----------------------------------------------------------
+  pg-standby2:
+    image: pg-repmgr:16
+    pull_policy: never
+    container_name: pg-standby2
+    user: root
+    hostname: pg-standby2
+    networks:
+      pg_cluster_net:
+        ipv4_address: 172.29.0.12
+    environment:
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres_lab
+      PGDATA:            /var/lib/postgresql/data
+      NODE_ID:           "3"
+      NODE_NAME:         pgstandby2
+      NODE_ROLE:         standby
+      REPMGR_PASSWORD:   repmgr_lab
+      REPL_PASSWORD:     repl_lab_2025
+      PRIMARY_HOST:      pg-primary
+      PRIMARY_PORT:      "5432"
+      REPMGR_PRIORITY:   "50"
+    volumes:
+      - pg_standby2_data:/var/lib/postgresql/data
+      - wal_archive:/mnt/wal_archive
+      - ./configs/standby2/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./configs/repmgr/repmgr-standby2.conf:/etc/repmgr/repmgr.conf:ro
+      - ./scripts:/scripts
+    ports:
+      - "5434:5432"
+    command: ["/scripts/entrypoint_standby.sh"]
+    depends_on:
+      pg-standby1:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 50s
+    restart: unless-stopped

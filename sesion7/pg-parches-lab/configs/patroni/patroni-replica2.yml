@@ -1,0 +1,37 @@
+scope: pg-patch-cluster
+name: pgreplica2
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: pgreplica2:8008
+
+etcd3:
+  hosts: etcd:2379
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: pgreplica2:5432
+  data_dir: /data/patroni
+  bin_dir: /usr/lib/postgresql/16/bin
+  pgpass: /tmp/pgpass2
+  authentication:
+    replication:
+      username: replicator
+      password: repl_lab_2025
+    superuser:
+      username: postgres
+      password: postgres_lab
+    rewind:
+      username: postgres
+      password: postgres_lab
+  parameters:
+    unix_socket_directories: /var/run/postgresql
+    hot_standby: "on"
+    archive_mode: always
+    archive_command: "test ! -f /mnt/wal_archive/%f && cp %p /mnt/wal_archive/%f"
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: true
+  nosync: false

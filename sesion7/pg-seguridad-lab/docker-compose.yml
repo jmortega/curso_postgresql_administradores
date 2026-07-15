@@ -1,0 +1,56 @@
+version: "3.8"
+
+# =============================================================
+# Laboratorio: Seguridad, Parches y Endurecimiento PostgreSQL
+#
+# Un único contenedor PostgreSQL 16 con pgAudit preinstalado
+# y toda la configuración necesaria para ejecutar las prácticas
+# directamente desde el host con docker exec.
+# =============================================================
+
+networks:
+  pg_sec_net:
+    driver: bridge
+
+volumes:
+  pg_sec_data:
+  pg_sec_logs:
+
+services:
+
+  pg-security:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pg-security-lab:16
+    container_name: pg-security
+    hostname: pg-security
+    networks:
+      - pg_sec_net
+    environment:
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres_lab
+      POSTGRES_DB:       dwh
+      PGDATA:            /var/lib/postgresql/data
+      # Contraseñas de los roles de práctica
+      APP_BACKEND_PASS:  app_pass_2025
+      REPORTING_SVC_PASS: report_pass_2025
+      MONITOR_PASS:      monitor_pass_2025
+      DBA_ANA_PASS:      dba_ana_pass_2025
+    volumes:
+      - pg_sec_data:/var/lib/postgresql/data
+      - pg_sec_logs:/var/log/postgresql
+      - ./configs/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./configs/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./scripts:/scripts
+      - ./certs:/etc/postgresql/ssl
+    ports:
+      - "5432:5432"
+    command: ["/scripts/entrypoint.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dwh || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
