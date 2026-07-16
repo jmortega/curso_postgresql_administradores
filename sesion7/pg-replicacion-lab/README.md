@@ -507,30 +507,7 @@ docker logs pg-standby1 --follow 2>&1 | grep -E "NOTICE|WARNING|ERROR|FAILOVER|p
 
 ---
 
-## Práctica 5: Switchover controlado (mantenimiento planificado)
-
-```bash
-# Ver el estado actual
-./scripts/cluster_status.sh
-
-#Arrancar el contenedor pg-primary
-
-# Limpiar incluyendo ficheros ocultos
-docker run --rm \
-    -v pg-replicacion-lab_pg_primary_data:/data \
-    alpine sh -c "find /data -mindepth 1 -delete"
-
-# Verificar que está limpio (debe devolver 0)
-docker run --rm \
-    -v pg-replicacion-lab_pg_primary_data:/data \
-    alpine sh -c "find /data -mindepth 1 | wc -l"
-
-docker start pg-primary
-```
-
----
-
-## Práctica 6: Reincorporar el nodo caído
+## Práctica 5: Reincorporar el nodo caído
 
 ```bash
 # Después de un failover, reincorporar pg-primary como standby
@@ -538,11 +515,143 @@ docker start pg-primary
 
 # Verificar que quedó como standby del nuevo primario
 ./scripts/cluster_status.sh
+
+════════════════════════════════════════════════════
+  Estado del Clúster PostgreSQL — 2026-07-15 19:17:14
+════════════════════════════════════════════════════
+
+▸ Contenedores Docker:
+NAME          STATUS                    PORTS
+pg-primary    Up 19 minutes (healthy)   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+pg-standby1   Up 2 hours (healthy)      0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp
+pg-standby2   Up 2 hours (healthy)      0.0.0.0:5434->5432/tcp, [::]:5434->5432/tcp
+
+▸ Disponibilidad de nodos:
+  ✓ pg-primary (localhost:5432) → STANDBY
+  ✓ pg-standby1 (localhost:5433) → PRIMARY
+  ✓ pg-standby2 (localhost:5434) → STANDBY
+
+▸ Replicación (desde primario):
+  standby   |     ip      |   state   | sync_state |    lag    | estado 
+------------+-------------+-----------+------------+-----------+--------
+ pg-primary | 172.29.0.10 | streaming | async      | 0.003483s | 🟢 ok
+(1 row)
+
+
+▸ Estado repmgr:
+ ID | Name        | Role    | Status    | Upstream     | Location | Priority | Timeline | Connection string                                                                         
+----+-------------+---------+-----------+--------------+----------+----------+----------+--------------------------------------------------------------------------------------------
+ 1  | pg-primary  | standby |   running | pg-standby1  | default  | 100      | 2        | host=pg-primary port=5432 dbname=repmgr user=repmgr password=repmgr_lab connect_timeout=5 
+ 2  | pg-standby1 | primary | * running |              | default  | 100      | 2        | host=pg-standby1 port=5432 dbname=repmgr user=repmgr password=repmgr_lab connect_timeout=5
+ 3  | pg-standby2 | standby |   running | ! pg-primary | default  | 50       | 1        | host=pg-standby2 port=5432 dbname=repmgr user=repmgr password=repmgr_lab connect_timeout=5
+
+  (repmgr no disponible — comprobar: docker exec pg-primary repmgr -f /etc/repmgr/repmgr.conf cluster show)
+
+▸ Lag en bytes:
+  standby   | lag_bytes | sync_state 
+------------+-----------+------------
+ pg-primary | 0 bytes   | async
+(1 row)
+
+pg-primary sigue registrado en repmgr como primary, aunque Postgres ya sabe que es standby. Hay que actualizar su propio registro:
+
+docker exec -u postgres pg-primary repmgr -f /etc/repmgr/repmgr.conf standby register --force
+
+$ psql -h localhost -p 5433 -U postgres -d dwh \
+    -c "SELECT count(*), pg_is_in_recovery() FROM pedidos;"
+ count | pg_is_in_recovery 
+-------+-------------------
+  2101 | f
+(1 row)
+
+linux@linux-EVO14-A8:~/Descargas/sesion7/pg-replicacion-lab$ psql -h localhost -p 5432 -U postgres -d dwh     -c "SELECT count(*), pg_is_in_recovery() FROM pedidos;"
+ count | pg_is_in_recovery 
+-------+-------------------
+  2101 | t
+(1 row)
+
+linux@linux-EVO14-A8:~/Descargas/sesion7/pg-replicacion-lab$ psql -h localhost -p 5434 -U postgres -d dwh     -c "SELECT count(*), pg_is_in_recovery() FROM pedidos;"
+ count | pg_is_in_recovery 
+-------+-------------------
+  2100 | t
+(1 row)
+
+$ psql -h localhost -p 5433 -U postgres -d dwh -c \
+    "INSERT INTO pedidos (cliente_id, estado) VALUES (1, 'test');"
+INSERT 0 1
+linux@linux-EVO14-A8:~/Descargas/sesion7/pg-replicacion-lab$ psql -h localhost -p 5432 -U postgres -d dwh -c     "INSERT INTO pedidos (cliente_id, estado) VALUES (1, 'test');"
+ERROR:  cannot execute INSERT in a read-only transaction
+linux@linux-EVO14-A8:~/Descargas/sesion7/pg-replicacion-lab$ psql -h localhost -p 5433 -U postgres -d dwh -c     "SELECT count(*) FROM pedidos;"
+ count 
+-------
+  2102
+(1 row)
+
+linux@linux-EVO14-A8:~/Descargas/sesion7/pg-replicacion-lab$ psql -h localhost -p 5432 -U postgres -d dwh -c     "SELECT count(*) FROM pedidos;"
+ count 
+-------
+  2102
+(1 row)
+
+linux@linux-EVO14-A8:~/Descargas/sesion7/pg-replicacion-lab$ psql -h localhost -p 5433 -U postgres -d dwh -c     "SELECT count(*) FROM pedidos;"
+ count 
+-------
+  2102
+(1 row)
+
+Volver al estado incial
+
+promover pg-primary de standby a primary
+
+$ docker exec -u postgres pg-primary repmgr -f /etc/repmgr/repmgr.conf standby promote --force
+
+#Reiniciar pg-standby1
+# 1. Confirmar lag = 0
+docker exec -u postgres pg-standby1 psql -U postgres -c "
+    SELECT application_name, state, sync_state, replay_lag
+    FROM pg_stat_replication;"
+
+# 2. Parada limpia del primario actual (pg-standby1)
+docker exec -u postgres pg-standby1 \
+    /usr/lib/postgresql/16/bin/pg_ctl stop -D /var/lib/postgresql/data -m fast
+
+# 3. Ver la promoción automática en vivo (pg-primary tiene prioridad 100)
+docker exec pg-primary tail -f /var/log/repmgr/repmgr.log
+
+# 4. Confirmar que pg-primary ya es primario
+docker exec -u postgres pg-primary psql -U postgres -c "SELECT pg_is_in_recovery();"
+# esperado: f
+
+# 5. Reincorporar pg-standby1 — con el fix, ahora detectará que
+#    pg-primary es el primario real y se purgará/reclonará solo
+docker restart pg-standby1
+docker logs pg-standby1 -f
+
+# 6. Verificación final
+./scripts/cluster_status.sh
+
+#Reiniciar pg-standby2
+# 1. Parar postgres limpiamente en pg-standby2
+docker exec -u postgres pg-standby2 \
+    /usr/lib/postgresql/16/bin/pg_ctl stop -D /var/lib/postgresql/data -m fast
+
+# 2. Verificar el nombre exacto del volumen
+docker volume ls | grep standby2
+
+# 3. Purgar sus datos (ajusta el nombre del volumen al que veas en el paso 2)
+docker run --rm -v pg-replicacion-lab_pg_standby2_data:/data \
+    alpine sh -c "find /data -mindepth 1 -delete"
+
+# 4. Reiniciar — el entrypoint (ya corregido) detecta el primario
+#    real dinámicamente y clona desde ahí automáticamente
+docker restart pg-standby2
+docker logs pg-standby2 -f
+```
 ```
 
 ---
 
-## Práctica 7: Monitor en tiempo real
+## Práctica 6: Monitor en tiempo real
 
 ```bash
 # Monitorización continua con alertas visuales (cada 3 segundos)
