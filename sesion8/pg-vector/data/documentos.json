@@ -1,0 +1,302 @@
+[
+  {
+    "id": 1,
+    "titulo": "Introducción a los transformers",
+    "contenido": "Los transformers son arquitecturas de red neuronal basadas en mecanismos de atención que revolucionaron el procesamiento del lenguaje natural.",
+    "categoria": "tecnología"
+  },
+  {
+    "id": 2,
+    "titulo": "Redes neuronales convolucionales",
+    "contenido": "Las CNN extraen características espaciales de imágenes mediante filtros aprendidos en capas sucesivas.",
+    "categoria": "tecnología"
+  },
+  {
+    "id": 3,
+    "titulo": "Bases de datos vectoriales",
+    "contenido": "Las bases de datos vectoriales permiten almacenar y buscar embeddings de alta dimensionalidad de forma eficiente.",
+    "categoria": "tecnología"
+  },
+  {
+    "id": 4,
+    "titulo": "Docker y contenedores",
+    "contenido": "Docker empaqueta aplicaciones junto a sus dependencias en contenedores reproducibles y portables.",
+    "categoria": "tecnología"
+  },
+  {
+    "id": 5,
+    "titulo": "Kubernetes en producción",
+    "contenido": "Kubernetes orquesta contenedores a escala, gestionando despliegues, escalado y tolerancia a fallos.",
+    "categoria": "tecnología"
+  },
+  {
+    "id": 6,
+    "titulo": "PostgreSQL avanzado",
+    "contenido": "PostgreSQL ofrece extensiones como pgvector, PostGIS y pg_stat_statements para casos de uso especializados.",
+    "categoria": "tecnología"
+  },
+  {
+    "id": 7,
+    "titulo": "APIs REST con FastAPI",
+    "contenido": "FastAPI permite construir APIs REST asíncronas en Python con validación automática mediante Pydantic.",
+    "categoria": "tecnología"
+  },
+  {
+    "id": 8,
+    "titulo": "Microservicios y event sourcing",
+    "contenido": "Los microservicios distribuyen la lógica en servicios independientes que se comunican mediante eventos.",
+    "categoria": "tecnología"
+  },
+  {
+    "id": 9,
+    "titulo": "MLOps: despliegue de modelos",
+    "contenido": "MLOps aplica prácticas DevOps al ciclo de vida de modelos de machine learning en producción.",
+    "categoria": "tecnología"
+  },
+  {
+    "id": 10,
+    "titulo": "Graph Neural Networks",
+    "contenido": "Las GNN extienden las redes neuronales a datos de grafos, capturando relaciones estructurales entre nodos.",
+    "categoria": "tecnología"
+  },
+  {
+    "id": 11,
+    "titulo": "Mecánica cuántica básica",
+    "contenido": "La mecánica cuántica describe el comportamiento de partículas subatómicas mediante funciones de onda y probabilidades.",
+    "categoria": "ciencia"
+  },
+  {
+    "id": 12,
+    "titulo": "Relatividad general de Einstein",
+    "contenido": "La relatividad general reformula la gravedad como curvatura del espacio-tiempo causada por la masa.",
+    "categoria": "ciencia"
+  },
+  {
+    "id": 13,
+    "titulo": "CRISPR y edición genética",
+    "contenido": "CRISPR-Cas9 permite editar secuencias de ADN con precisión, abriendo nuevas posibilidades en medicina.",
+    "categoria": "ciencia"
+  },
+  {
+    "id": 14,
+    "titulo": "Cambio climático y modelos",
+    "contenido": "Los modelos climáticos integran física, química y biología para predecir el impacto del calentamiento global.",
+    "categoria": "ciencia"
+  },
+  {
+    "id": 15,
+    "titulo": "Neurociencia cognitiva",
+    "contenido": "La neurociencia cognitiva estudia las bases neurales de la percepción, memoria y toma de decisiones.",
+    "categoria": "ciencia"
+  },
+  {
+    "id": 16,
+    "titulo": "Biología sintética",
+    "contenido": "La biología sintética diseña organismos con funciones nuevas combinando ingeniería y biología molecular.",
+    "categoria": "ciencia"
+  },
+  {
+    "id": 17,
+    "titulo": "Astrofísica de agujeros negros",
+    "contenido": "Los agujeros negros son regiones donde la gravedad supera la velocidad de escape de la luz.",
+    "categoria": "ciencia"
+  },
+  {
+    "id": 18,
+    "titulo": "Computación cuántica",
+    "contenido": "Los computadores cuánticos usan qubits en superposición para resolver problemas intratables clásicamente.",
+    "categoria": "ciencia"
+  },
+  {
+    "id": 19,
+    "titulo": "La Revolución Industrial",
+    "contenido": "La Revolución Industrial transformó la economía europea del siglo XVIII con la mecanización de la producción.",
+    "categoria": "historia"
+  },
+  {
+    "id": 20,
+    "titulo": "El Imperio Romano",
+    "contenido": "Roma dominó el Mediterráneo durante siglos, dejando un legado jurídico, lingüístico y arquitectónico duradero.",
+    "categoria": "historia"
+  },
+  {
+    "id": 21,
+    "titulo": "Segunda Guerra Mundial",
+    "contenido": "El conflicto 1939-1945 involucró a la mayoría de naciones y redefinió el orden geopolítico mundial.",
+    "categoria": "historia"
+  },
+  {
+    "id": 22,
+    "titulo": "La Ruta de la Seda",
+    "contenido": "La Ruta de la Seda conectó Asia, Oriente Medio y Europa facilitando el comercio y el intercambio cultural.",
+    "categoria": "historia"
+  },
+  {
+    "id": 23,
+    "titulo": "Civilizaciones mesoamericanas",
+    "contenido": "Mayas, aztecas e incas desarrollaron sistemas matemáticos, astronómicos y arquitectónicos avanzados.",
+    "categoria": "historia"
+  },
+  {
+    "id": 24,
+    "titulo": "El Renacimiento italiano",
+    "contenido": "El Renacimiento recuperó el ideal clásico grecorromano con figuras como Da Vinci, Miguel Ángel y Rafael.",
+    "categoria": "arte"
+  },
+  {
+    "id": 25,
+    "titulo": "Arte abstracto del siglo XX",
+    "contenido": "Kandinsky y Mondrian liberaron la pintura de la representación figurativa buscando formas puras.",
+    "categoria": "arte"
+  },
+  {
+    "id": 26,
+    "titulo": "Fotografía como arte",
+    "contenido": "La fotografía evolucionó de documento técnico a medio artístico capaz de capturar emoción y concepto.",
+    "categoria": "arte"
+  },
+  {
+    "id": 27,
+    "titulo": "Arquitectura contemporánea",
+    "contenido": "Zaha Hadid y Frank Gehry llevaron las formas orgánicas y el parametrismo a la arquitectura global.",
+    "categoria": "arte"
+  },
+  {
+    "id": 28,
+    "titulo": "Teoría de juegos",
+    "contenido": "La teoría de juegos modela situaciones estratégicas donde los resultados dependen de las decisiones de múltiples agentes.",
+    "categoria": "economía"
+  },
+  {
+    "id": 29,
+    "titulo": "Criptomonedas y blockchain",
+    "contenido": "Bitcoin introdujo el consenso descentralizado mediante prueba de trabajo y cadenas de bloques inmutables.",
+    "categoria": "economía"
+  },
+  {
+    "id": 30,
+    "titulo": "Macroeconomía keynesiana",
+    "contenido": "Keynes argumentó que la demanda agregada impulsa el empleo y que el gasto público puede estabilizar ciclos.",
+    "categoria": "economía"
+  },
+  {
+    "id": 31,
+    "titulo": "Globalización y comercio",
+    "contenido": "La globalización integró mercados globales reduciendo barreras comerciales y transformando cadenas de suministro.",
+    "categoria": "economía"
+  },
+  {
+    "id": 32,
+    "titulo": "Finanzas conductuales",
+    "contenido": "Las finanzas conductuales estudian cómo los sesgos cognitivos afectan las decisiones financieras reales.",
+    "categoria": "economía"
+  },
+  {
+    "id": 33,
+    "titulo": "Procesamiento del lenguaje natural",
+    "contenido": "El PLN usa modelos estadísticos y redes neuronales para comprender y generar texto humano.",
+    "categoria": "tecnología"
+  },
+  {
+    "id": 34,
+    "titulo": "Sistemas de recomendación",
+    "contenido": "Los sistemas de recomendación predicen preferencias del usuario mediante filtrado colaborativo o basado en contenido.",
+    "categoria": "tecnología"
+  },
+  {
+    "id": 35,
+    "titulo": "Seguridad en redes",
+    "contenido": "La ciberseguridad protege infraestructuras digitales ante ataques mediante cifrado, firewalls y monitorización.",
+    "categoria": "tecnología"
+  },
+  {
+    "id": 36,
+    "titulo": "Evolución de los vertebrados",
+    "contenido": "Los vertebrados evolucionaron desde peces primitivos hasta mamíferos en cientos de millones de años.",
+    "categoria": "ciencia"
+  },
+  {
+    "id": 37,
+    "titulo": "Física de partículas",
+    "contenido": "El modelo estándar describe las partículas fundamentales y las fuerzas que gobiernan el universo.",
+    "categoria": "ciencia"
+  },
+  {
+    "id": 38,
+    "titulo": "La Guerra Fría",
+    "contenido": "La rivalidad EE.UU.-URSS entre 1947 y 1991 marcó la geopolítica global con carreras armamentísticas y espaciales.",
+    "categoria": "historia"
+  },
+  {
+    "id": 39,
+    "titulo": "Música barroca",
+    "contenido": "Bach, Handel y Vivaldi crearon el barroco musical, caracterizado por el contrapunto y el ornamento.",
+    "categoria": "arte"
+  },
+  {
+    "id": 40,
+    "titulo": "El mercado de valores",
+    "contenido": "Los mercados de valores permiten a empresas captar capital y a inversores participar en su crecimiento.",
+    "categoria": "economía"
+  },
+  {
+    "id": 41,
+    "titulo": "Aprendizaje por refuerzo",
+    "contenido": "El aprendizaje por refuerzo entrena agentes que maximizan recompensas acumuladas mediante interacción con un entorno.",
+    "categoria": "tecnología"
+  },
+  {
+    "id": 42,
+    "titulo": "Termodinámica clásica",
+    "contenido": "La termodinámica estudia las relaciones entre calor, trabajo y energía en sistemas macroscópicos.",
+    "categoria": "ciencia"
+  },
+  {
+    "id": 43,
+    "titulo": "Colonialismo europeo",
+    "contenido": "El colonialismo europeo del siglo XIX remodelóó economías, fronteras y culturas en África, Asia y América.",
+    "categoria": "historia"
+  },
+  {
+    "id": 44,
+    "titulo": "Diseño gráfico digital",
+    "contenido": "Herramientas como Figma y Adobe democratizaron el diseño gráfico profesional para equipos distribuidos.",
+    "categoria": "arte"
+  },
+  {
+    "id": 45,
+    "titulo": "Inflación y política monetaria",
+    "contenido": "Los bancos centrales ajustan tasas de interés para controlar la inflación y estimular el crecimiento.",
+    "categoria": "economía"
+  },
+  {
+    "id": 46,
+    "titulo": "Visión por computador",
+    "contenido": "La visión por computador permite a máquinas interpretar imágenes y vídeo mediante redes convolucionales profundas.",
+    "categoria": "tecnología"
+  },
+  {
+    "id": 47,
+    "titulo": "Genómica y secuenciación",
+    "contenido": "La secuenciación masiva del ADN permite análisis genómicos que antes requerían décadas de trabajo.",
+    "categoria": "ciencia"
+  },
+  {
+    "id": 48,
+    "titulo": "Imperios asiáticos medievales",
+    "contenido": "El Imperio Mongol, el Sultanato de Delhi y la Dinastía Tang marcaron siglos de hegemonía en Asia.",
+    "categoria": "historia"
+  },
+  {
+    "id": 49,
+    "titulo": "Escultura contemporánea",
+    "contenido": "Artistas como Jeff Koons y Anish Kapoor redefinen la escultura usando materiales industriales y escala monumental.",
+    "categoria": "arte"
+  },
+  {
+    "id": 50,
+    "titulo": "Mercados emergentes",
+    "contenido": "Los mercados emergentes de Asia, Latam y África representan el motor del crecimiento económico global.",
+    "categoria": "economía"
+  }
+]

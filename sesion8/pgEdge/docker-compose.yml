@@ -1,0 +1,368 @@
+services:
+
+  # ─────────────────────────────────────────────────────────────
+  # NODO 1 — Región simulada: eu-west-1 (Europa / Irlanda)
+  # Puerto host: 6432
+  # ─────────────────────────────────────────────────────────────
+  postgres-n1:
+    image: ${POSTGRES_IMAGE:-ghcr.io/pgedge/pgedge-postgres:17-spock5-standard}
+    pull_policy: always
+    container_name: postgres-n1
+    hostname: postgres-n1
+    restart: always
+    environment:
+      POSTGRES_USER:     ${ADMIN_USER:-admin}
+      POSTGRES_PASSWORD: ${ADMIN_PASSWORD:-Admin_Lab_2026}
+      POSTGRES_DB:       ${POSTGRES_DB:-ecommerce_db}
+      PGEDGE_USER:       ${REPL_USER:-pgedge}
+      PGEDGE_PASSWORD:   ${REPL_PASSWORD:-Repl_Lab_2026}
+      NODE_NAME:         n1
+      NODE_ORDINAL:      1
+    ports:
+      - target:    5432
+        published: 6432        # n1 (EU): psql -h localhost -p 6432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -h 127.0.0.1"]
+      interval: 5s
+      timeout:  3s
+      retries:  20
+    volumes:
+      - n1_data:/var/lib/pgsql
+    configs:
+      - source: init-preload
+        target: /docker-entrypoint-initdb.d/10-init-preload.sh
+        mode:   0755
+      - source: init-pgconf
+        target: /docker-entrypoint-initdb.d/20-init-pgconf.sh
+        mode:   0755
+      - source: restart-postgres
+        target: /docker-entrypoint-initdb.d/30-restart-postgres.sh
+        mode:   0755
+      - source: create-extensions
+        target: /docker-entrypoint-initdb.d/40-create-extensions.sh
+        mode:   0755
+      - source: relax-pg-hba
+        target: /docker-entrypoint-initdb.d/50-relax-pg-hba.sh
+        mode:   0755
+      - source: spock-node
+        target: /docker-entrypoint-initdb.d/60-spock-node.sh
+        mode:   0755
+
+  # ─────────────────────────────────────────────────────────────
+  # NODO 2 — Región simulada: us-east-1 (EE.UU. / Virginia)
+  # Puerto host: 6433
+  # ─────────────────────────────────────────────────────────────
+  postgres-n2:
+    image: ${POSTGRES_IMAGE:-ghcr.io/pgedge/pgedge-postgres:17-spock5-standard}
+    pull_policy: always
+    container_name: postgres-n2
+    hostname: postgres-n2
+    restart: always
+    environment:
+      POSTGRES_USER:     ${ADMIN_USER:-admin}
+      POSTGRES_PASSWORD: ${ADMIN_PASSWORD:-Admin_Lab_2026}
+      POSTGRES_DB:       ${POSTGRES_DB:-ecommerce_db}
+      PGEDGE_USER:       ${REPL_USER:-pgedge}
+      PGEDGE_PASSWORD:   ${REPL_PASSWORD:-Repl_Lab_2026}
+      NODE_NAME:         n2
+      NODE_ORDINAL:      2
+    ports:
+      - target:    5432
+        published: 6433        # n2 (USA): psql -h localhost -p 6433
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -h 127.0.0.1"]
+      interval: 5s
+      timeout:  3s
+      retries:  20
+    volumes:
+      - n2_data:/var/lib/pgsql
+    configs:
+      - source: init-preload
+        target: /docker-entrypoint-initdb.d/10-init-preload.sh
+        mode:   0755
+      - source: init-pgconf
+        target: /docker-entrypoint-initdb.d/20-init-pgconf.sh
+        mode:   0755
+      - source: restart-postgres
+        target: /docker-entrypoint-initdb.d/30-restart-postgres.sh
+        mode:   0755
+      - source: create-extensions
+        target: /docker-entrypoint-initdb.d/40-create-extensions.sh
+        mode:   0755
+      - source: relax-pg-hba
+        target: /docker-entrypoint-initdb.d/50-relax-pg-hba.sh
+        mode:   0755
+      - source: spock-node
+        target: /docker-entrypoint-initdb.d/60-spock-node.sh
+        mode:   0755
+
+  # ─────────────────────────────────────────────────────────────
+  # NODO 3 — Región simulada: ap-southeast-1 (Asia / Singapur)
+  # Puerto host: 6434
+  # ─────────────────────────────────────────────────────────────
+  postgres-n3:
+    image: ${POSTGRES_IMAGE:-ghcr.io/pgedge/pgedge-postgres:17-spock5-standard}
+    pull_policy: always
+    container_name: postgres-n3
+    hostname: postgres-n3
+    restart: always
+    environment:
+      POSTGRES_USER:     ${ADMIN_USER:-admin}
+      POSTGRES_PASSWORD: ${ADMIN_PASSWORD:-Admin_Lab_2026}
+      POSTGRES_DB:       ${POSTGRES_DB:-ecommerce_db}
+      PGEDGE_USER:       ${REPL_USER:-pgedge}
+      PGEDGE_PASSWORD:   ${REPL_PASSWORD:-Repl_Lab_2026}
+      NODE_NAME:         n3
+      NODE_ORDINAL:      3
+    ports:
+      - target:    5432
+        published: 6434        # n3 (ASIA): psql -h localhost -p 6434
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -h 127.0.0.1"]
+      interval: 5s
+      timeout:  3s
+      retries:  20
+    volumes:
+      - n3_data:/var/lib/pgsql
+    configs:
+      - source: init-preload
+        target: /docker-entrypoint-initdb.d/10-init-preload.sh
+        mode:   0755
+      - source: init-pgconf
+        target: /docker-entrypoint-initdb.d/20-init-pgconf.sh
+        mode:   0755
+      - source: restart-postgres
+        target: /docker-entrypoint-initdb.d/30-restart-postgres.sh
+        mode:   0755
+      - source: create-extensions
+        target: /docker-entrypoint-initdb.d/40-create-extensions.sh
+        mode:   0755
+      - source: relax-pg-hba
+        target: /docker-entrypoint-initdb.d/50-relax-pg-hba.sh
+        mode:   0755
+      - source: spock-node
+        target: /docker-entrypoint-initdb.d/60-spock-node.sh
+        mode:   0755
+
+  # ─────────────────────────────────────────────────────────────
+  # SPOCK-WIRE — Job que conecta los 3 nodos
+  # en malla completa (n1↔n2, n1↔n3, n2↔n3) creando las
+  # suscripciones Spock en ambas direcciones.
+  # ─────────────────────────────────────────────────────────────
+  spock-wire:
+    image: ${POSTGRES_IMAGE:-ghcr.io/pgedge/pgedge-postgres:17-spock5-standard}
+    container_name: spock-wire
+    restart: "no"
+    depends_on:
+      postgres-n1:
+        condition: service_healthy
+      postgres-n2:
+        condition: service_healthy
+      postgres-n3:
+        condition: service_healthy
+    environment:
+      PGADMIN_USER:     ${ADMIN_USER:-admin}
+      PGADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin_Lab_2026}
+      REPL_USER:        ${REPL_USER:-pgedge}
+      REPL_PASSWORD:    ${REPL_PASSWORD:-Repl_Lab_2026}
+      DBNAME:           ${POSTGRES_DB:-ecommerce_db}
+      # Formato: nombre:host:puerto  (separados por coma)
+      NODES: "n1:postgres-n1:5432,n2:postgres-n2:5432,n3:postgres-n3:5432"
+    command: ["/bin/bash", "/wire/run.sh"]
+    configs:
+      - source: spock-wire-script
+        target: /wire/run.sh
+        mode:   0755
+
+# ─────────────────────────────────────────────────────────────
+# VOLÚMENES
+# ─────────────────────────────────────────────────────────────
+volumes:
+  n1_data:
+  n2_data:
+  n3_data:
+
+# ─────────────────────────────────────────────────────────────
+# CONFIGS — scripts de inicialización inyectados en los nodos
+# ─────────────────────────────────────────────────────────────
+configs:
+
+  # 10 — Añadir extensiones a shared_preload_libraries
+  init-preload:
+    content: |
+      #!/usr/bin/env bash
+      set -Eeo pipefail
+      PRELOAD_EXTS="pg_stat_statements,spock,snowflake,lolor,pg_cron,pg_stat_monitor"
+      PGCONF="$$PGDATA/postgresql.conf"
+      echo "[10] Configurando shared_preload_libraries: $$PRELOAD_EXTS"
+      if grep -q '^[ ]*shared_preload_libraries' "$$PGCONF"; then
+        sed -i "s|^[ ]*shared_preload_libraries.*|shared_preload_libraries = '$$PRELOAD_EXTS'|" "$$PGCONF"
+      else
+        echo "shared_preload_libraries = '$$PRELOAD_EXTS'" >> "$$PGCONF"
+      fi
+
+  # 20 — Parámetros de PostgreSQL para replicación lógica y Spock
+  init-pgconf:
+    content: |
+      #!/usr/bin/env bash
+      set -Eeo pipefail
+      PGCONF="$$PGDATA/postgresql.conf"
+      echo "[20] Aplicando parámetros de replicación y Spock"
+      cat >> "$$PGCONF" <<EOF
+      listen_addresses = '*'
+      wal_level = logical
+      max_worker_processes = 16
+      max_replication_slots = 16
+      max_wal_senders = 16
+      track_commit_timestamp = on
+      spock.enable_ddl_replication = on
+      spock.include_ddl_repset = on
+      spock.allow_ddl_from_functions = on
+      spock.conflict_resolution = last_update_wins
+      spock.save_resolutions = on
+      spock.conflict_log_level = WARNING
+      lolor.node = '$${NODE_ORDINAL}'
+      snowflake.node_id = '$${NODE_ORDINAL}'
+      cron.database_name = '$${POSTGRES_DB:-ecommerce_db}'
+      EOF
+
+  # 30 — Reiniciar para aplicar los cambios de configuración
+  restart-postgres:
+    content: |
+      #!/usr/bin/env bash
+      set -Eeo pipefail
+      echo "[30] Reiniciando PostgreSQL para aplicar configuración…"
+      pg_ctl -D "$$PGDATA" -m fast restart
+
+  # 40 — Crear extensiones en la base de datos
+  create-extensions:
+    content: |
+      #!/usr/bin/env bash
+      set -Eeo pipefail
+      EXTENSIONS=(pg_stat_statements spock snowflake lolor vector postgis pgaudit pg_cron pg_stat_monitor pgmq)
+      echo "[40] Creando extensiones: $${EXTENSIONS[*]}"
+      for EXT in "$${EXTENSIONS[@]}"; do
+        psql -v ON_ERROR_STOP=1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" \
+          -c "CREATE EXTENSION IF NOT EXISTS \"$$EXT\";" \
+          && echo "  ✓ $$EXT" \
+          || echo "  ⚠ $$EXT (omitida — puede no estar disponible)"
+      done
+
+  # 50 — Relajar pg_hba.conf para permitir conexiones entre contenedores
+  relax-pg-hba:
+    content: |
+      #!/usr/bin/env bash
+      set -Eeo pipefail
+      echo "[50] Configurando pg_hba.conf para acceso entre nodos"
+      echo "host all all 0.0.0.0/0 md5" >> "$$PGDATA/pg_hba.conf"
+      echo "host all all ::/0        md5" >> "$$PGDATA/pg_hba.conf"
+      pg_ctl -D "$$PGDATA" -m fast reload
+
+  # 60 — Crear usuario de replicación y nodo Spock en esta instancia
+  spock-node:
+    content: |
+      #!/usr/bin/env bash
+      set -Eeo pipefail
+      : "$${NODE_NAME:?NODE_NAME requerido}"
+      DB="$${POSTGRES_DB:-ecommerce_db}"
+      ADMIN="$${POSTGRES_USER:-admin}"
+      ADMIN_PASS="$${POSTGRES_PASSWORD}"
+      REPL="$${PGEDGE_USER:-pgedge}"
+      REPL_PASS="$${PGEDGE_PASSWORD:-Repl_Lab_2026}"
+      HOST="postgres-$${NODE_NAME}"
+      PORT="$${PGPORT:-5432}"
+      export PGPASSWORD="$$ADMIN_PASS"
+
+      echo "[60] Configurando rol de replicación '$$REPL' en $$NODE_NAME"
+      EXISTS=$$(psql -tA -U "$$ADMIN" -d "$$DB" \
+        -c "SELECT 1 FROM pg_roles WHERE rolname='$$REPL' LIMIT 1;" || true)
+      if [ "$$EXISTS" != "1" ]; then
+        psql -v ON_ERROR_STOP=1 -U "$$ADMIN" -d "$$DB" \
+          -c "CREATE ROLE \"$$REPL\" LOGIN REPLICATION PASSWORD '$$REPL_PASS';"
+      else
+        psql -v ON_ERROR_STOP=1 -U "$$ADMIN" -d "$$DB" \
+          -c "ALTER ROLE \"$$REPL\" LOGIN REPLICATION PASSWORD '$$REPL_PASS';"
+      fi
+      psql -v ON_ERROR_STOP=1 -U "$$ADMIN" -d "$$DB" \
+        -c "GRANT pg_read_all_data, pg_write_all_data TO \"$$REPL\";"
+      psql -v ON_ERROR_STOP=1 -U "$$ADMIN" -d "$$DB" \
+        -c "GRANT CREATE, TEMP ON DATABASE \"$$DB\" TO \"$$REPL\";"
+
+      echo "[60] Registrando nodo Spock '$$NODE_NAME'"
+      NODE_EXISTS=$$(psql -tA -U "$$ADMIN" -d "$$DB" \
+        -c "SELECT 1 FROM spock.node WHERE node_name='$$NODE_NAME' LIMIT 1;" || true)
+      if [ "$$NODE_EXISTS" != "1" ]; then
+        psql -v ON_ERROR_STOP=1 -U "$$ADMIN" -d "$$DB" -c \
+          "SELECT spock.node_create(
+            node_name := '$$NODE_NAME',
+            dsn := 'host=$$HOST port=$$PORT dbname=$$DB user=$$REPL password=$$REPL_PASS'
+          );"
+        echo "[60] ✓ Nodo '$$NODE_NAME' creado"
+      else
+        echo "[60] ✓ Nodo '$$NODE_NAME' ya existe"
+      fi
+
+  # Wire — conecta todos los nodos en malla completa
+  spock-wire-script:
+    content: |
+      #!/usr/bin/env bash
+      set -Eeo pipefail
+      : "$${NODES:?NODES requerido (ej: n1:host1:5432,n2:host2:5432)}"
+      : "$${PGADMIN_USER:?}" "$${PGADMIN_PASSWORD:?}"
+      : "$${REPL_USER:?}"    "$${REPL_PASSWORD:?}"
+      : "$${DBNAME:?}"
+
+      IFS=',' read -r -a ENTRIES <<< "$$NODES"
+      NAMES=(); HOSTS=(); PORTS=()
+      for entry in "$${ENTRIES[@]}"; do
+        n="$${entry%%:*}"; rest="$${entry#*:}"
+        h="$${rest%%:*}";  p="$${rest##*:}"
+        NAMES+=("$$n"); HOSTS+=("$$h"); PORTS+=("$$p")
+      done
+
+      psql_exec() {
+        local h=$$1 p=$$2 sql=$$3
+        PGPASSWORD="$$PGADMIN_PASSWORD" \
+          psql -h "$$h" -p "$$p" -U "$$PGADMIN_USER" -d "$$DBNAME" \
+               -v ON_ERROR_STOP=1 -c "$$sql" >/dev/null
+      }
+
+      echo "[wire] Esperando que todos los nodos tengan su nodo Spock registrado…"
+      for i in "$${!NAMES[@]}"; do
+        n="$${NAMES[$$i]}"; h="$${HOSTS[$$i]}"; p="$${PORTS[$$i]}"
+        until PGPASSWORD="$$PGADMIN_PASSWORD" \
+                psql -h "$$h" -p "$$p" -U "$$PGADMIN_USER" -d "$$DBNAME" -tA \
+                     -c "SELECT 1 FROM spock.node WHERE node_name='$$n' LIMIT 1;" \
+              | grep -q '^1$$'; do
+          echo "[wire]   esperando nodo '$$n' en $$h:$$p…"; sleep 2
+        done
+        echo "[wire] ✓ Nodo '$$n' listo"
+      done
+
+      echo "[wire] Creando suscripciones en malla completa (idempotente)…"
+      for i in "$${!NAMES[@]}"; do
+        for j in "$${!NAMES[@]}"; do
+          [ "$$i" -eq "$$j" ] && continue
+          src="$${NAMES[$$i]}"; src_h="$${HOSTS[$$i]}"; src_p="$${PORTS[$$i]}"
+          dst="$${NAMES[$$j]}"; dst_h="$${HOSTS[$$j]}"; dst_p="$${PORTS[$$j]}"
+          sub="sub_$${src}_$${dst}"
+          echo "[wire]   $$src → $$dst  ($$sub)"
+          PGPASSWORD="$$PGADMIN_PASSWORD" \
+            psql -h "$$src_h" -p "$$src_p" -U "$$PGADMIN_USER" -d "$$DBNAME" \
+                 -v ON_ERROR_STOP=1 -c \
+            "SELECT spock.sub_create(
+               subscription_name := '$$sub',
+               provider_dsn := 'host=$$dst_h port=$$dst_p dbname=$$DBNAME user=$$REPL_USER password=$$REPL_PASSWORD'
+             ) WHERE NOT EXISTS (
+               SELECT 1 FROM spock.subscription WHERE sub_name='$$sub'
+             );" >/dev/null
+        done
+      done
+
+      echo ""
+      echo "[wire] ════════════════════════════════════════"
+      echo "[wire]  Clúster pgEdge 3 nodos listo y cableado"
+      echo "[wire]  n1 (EU)   → localhost:6432"
+      echo "[wire]  n2 (USA)  → localhost:6433"
+      echo "[wire]  n3 (ASIA) → localhost:6434"
+      echo "[wire] ════════════════════════════════════════"

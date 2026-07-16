@@ -1,0 +1,159 @@
+version: "3.8"
+
+# =============================================================
+# PostgreSQL Migrations Lab
+#
+# Servicios:
+#   pg14        → PostgreSQL 14 (origen de las migraciones PG)
+#   pg17        → PostgreSQL 17 (destino de las migraciones PG)
+#   mysql8      → MySQL 8.0    (origen de la migración MySQL→PG)
+#   pgloader    → pgloader 3.6 (herramienta MySQL→PG)
+#
+# Puertos del host:
+#   5414  → PostgreSQL 14   (pg14)
+#   5417  → PostgreSQL 17   (pg17)
+#   3306  → MySQL 8.0       (mysql8)
+#
+# Volúmenes compartidos:
+#   pg_dumps    → /dumps   (pg_dump / pg_restore entre PG14 y PG17)
+#   pg14_data   → datos PG14
+#   pg17_data   → datos PG17
+#   mysql_data  → datos MySQL
+# =============================================================
+
+networks:
+  migrations_net:
+    driver: bridge
+
+volumes:
+  pg14_data:
+  pg17_data:
+  mysql_data:
+  pg_dumps:          # directorio compartido para ficheros .dump y .sql
+
+services:
+
+  # -----------------------------------------------------------
+  # PostgreSQL 14 — nodo ORIGEN
+  # -----------------------------------------------------------
+  pg14:
+    image: postgres:14-bookworm
+    container_name: pg14
+    hostname: pg14
+    networks:
+      - migrations_net
+    environment:
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres_lab
+      POSTGRES_DB:       tienda_v1
+      PGDATA:            /var/lib/postgresql/data
+    volumes:
+      - pg14_data:/var/lib/postgresql/data
+      - pg_dumps:/dumps
+      - ./scripts/pg/01_seed_pg14.sql:/docker-entrypoint-initdb.d/01_seed.sql:ro
+    ports:
+      - "5414:5432"
+    # wal_level=logical necesario para replicación lógica (zero-downtime)
+    # y para CREATE SUBSCRIPTION en PG17
+    command: >
+      postgres
+        -c wal_level=logical
+        -c max_replication_slots=10
+        -c max_wal_senders=10
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tienda_v1 || exit 1"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # -----------------------------------------------------------
+  # PostgreSQL 17 — nodo DESTINO
+  # -----------------------------------------------------------
+  pg17:
+    image: postgres:17-bookworm
+    container_name: pg17
+    hostname: pg17
+    networks:
+      - migrations_net
+    environment:
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres_lab
+      POSTGRES_DB:       tienda_v2
+      # Crear la BD destino de pgloader automáticamente al arrancar
+      POSTGRES_MULTIPLE_DATABASES: tienda_v2,tienda_mysql_migrada
+      PGDATA:            /var/lib/postgresql/data
+    volumes:
+      - pg17_data:/var/lib/postgresql/data
+      - pg_dumps:/dumps
+      - ./scripts/pg/02_create_pg17.sql:/docker-entrypoint-initdb.d/02_create.sql:ro
+      - ./scripts/pg/create_multiple_dbs.sh:/docker-entrypoint-initdb.d/01_create_dbs.sh:ro
+    ports:
+      - "5417:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tienda_v2 || exit 1"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # -----------------------------------------------------------
+  # MySQL 8.0 — origen de la migración MySQL→PostgreSQL
+  # -----------------------------------------------------------
+  mysql8:
+    image: mysql:8.0
+    container_name: mysql8
+    hostname: mysql8
+    networks:
+      - migrations_net
+    environment:
+      MYSQL_ROOT_PASSWORD: root_lab
+      MYSQL_DATABASE:      tienda_mysql
+      MYSQL_USER:          mysql_user
+      MYSQL_PASSWORD:      mysql_pass
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/mysql/01_seed_mysql.sql:/docker-entrypoint-initdb.d/01_seed.sql:ro
+      - ./configs/mysql.cnf:/etc/mysql/conf.d/migrations.cnf:ro
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "root", "--password=root_lab"]
+      interval: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # -----------------------------------------------------------
+  # pgloader — migración MySQL → PostgreSQL
+  # Se ejecuta como job puntual: docker compose run pgloader
+  # -----------------------------------------------------------
+  pgloader:
+    image: ghcr.io/dimitri/pgloader:latest
+    container_name: pgloader
+    hostname: pgloader
+    networks:
+      - migrations_net
+    environment:
+      # Variables accesibles desde los ficheros .load
+      MYSQL_HOST:     mysql8
+      MYSQL_PORT:     "3306"
+      MYSQL_DB:       tienda_mysql
+      MYSQL_USER:     mysql_user
+      MYSQL_PASS:     mysql_pass
+      PG_HOST:        pg17
+      PG_PORT:        "5432"
+      PG_DB:          tienda_mysql_migrada
+      PG_USER:        postgres
+      PG_PASS:        postgres_lab
+    volumes:
+      - ./scripts/mysql/pgloader.load:/pgloader/pgloader.load:ro
+      - pg_dumps:/dumps
+    depends_on:
+      mysql8:
+        condition: service_healthy
+      pg17:
+        condition: service_healthy
+    # Sin 'command' para poder ejecutarlo manualmente:
+    #   docker compose run --rm pgloader pgloader /pgloader/pgloader.load
+    entrypoint: ["tail", "-f", "/dev/null"]
+    restart: "no"

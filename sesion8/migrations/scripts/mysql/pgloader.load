@@ -1,0 +1,101 @@
+-- =============================================================
+-- pgloader.load
+-- Migración MySQL 8 → PostgreSQL 17
+--
+-- Ejecutar:
+--   docker compose run --rm pgloader \
+--     pgloader /pgloader/pgloader.load
+-- =============================================================
+
+LOAD DATABASE
+     FROM      mysql://mysql_user:mysql_pass@mysql8:3306/tienda_mysql
+     INTO      postgresql://postgres:postgres_lab@pg17:5432/tienda_mysql_migrada
+
+-- ── Configuración de comportamiento ──────────────────────────
+WITH
+    -- Crear tablas automáticamente en PostgreSQL
+    create tables,
+    -- Incluir datos
+    include drop,
+    -- Crear índices
+    create indexes,
+    -- Resetear secuencias al valor correcto tras la carga
+    reset sequences,
+    -- Usar workers paralelos para mayor velocidad
+    workers = 4, concurrency = 1,
+    -- Usar COPY para inserción masiva (ultra-veloz)
+    batch rows = 10000,
+    -- No detener la migración ante errores en filas individuales
+    batch size = 10MB,
+    -- Prefetch para optimizar memoria
+    prefetch rows = 1000
+
+-- ── Mapeo de tipos MySQL → PostgreSQL ────────────────────────
+CAST
+    -- TINYINT(1) → BOOLEAN (MySQL usa TINYINT para booleanos)
+    type tinyint when (= precision 1) to boolean
+        using (lambda (val) (if (equal val "1") "true" "false")),
+
+    -- INT AUTO_INCREMENT → BIGINT con IDENTITY (PG moderno)
+    type int when signed to integer drop typemod,
+
+    -- DATETIME → TIMESTAMPTZ (con zona horaria UTC)
+    type datetime to timestamptz
+        using zero-dates-to-null,
+
+    -- DECIMAL → NUMERIC (equivalente directo)
+    type decimal to numeric drop typemod,
+
+    -- TEXT y VARCHAR conservan UTF-8
+    type varchar to text drop typemod,
+
+    -- CHAR de longitud fija → TEXT en PG
+    type char to text drop typemod
+
+
+-- ── Excluir objetos que no se migran ─────────────────────────
+EXCLUDING TABLE NAMES MATCHING 'resumen_pedidos'
+
+-- ── AFTER LOAD: transformaciones post-carga ──────────────────
+AFTER LOAD DO
+    -- Crear índices adicionales no presentes en MySQL
+    $$ CREATE INDEX IF NOT EXISTS idx_clientes_email_migr
+       ON clientes(email); $$,
+
+    $$ CREATE INDEX IF NOT EXISTS idx_pedidos_estado_migr
+       ON pedidos(estado); $$,
+
+    -- Convertir columna 'activo' de INTEGER a BOOLEAN real
+    $$ ALTER TABLE clientes
+       ALTER COLUMN activo TYPE BOOLEAN
+       USING activo::boolean; $$,
+
+    $$ ALTER TABLE productos
+       ALTER COLUMN activo TYPE BOOLEAN
+       USING activo::boolean; $$,
+
+    $$ ALTER TABLE categorias
+       ALTER COLUMN activa TYPE BOOLEAN
+       USING activa::boolean; $$,
+
+    -- Añadir constraints que MySQL no tenía
+    $$ ALTER TABLE pedidos
+       ADD CONSTRAINT chk_estado CHECK (
+           estado IN ('pendiente','confirmado','enviado','entregado','cancelado')
+       ); $$,
+
+    -- Registrar migración completada
+    $$ CREATE TABLE IF NOT EXISTS _migracion_info (
+           clave TEXT PRIMARY KEY,
+           valor TEXT,
+           ts    TIMESTAMPTZ DEFAULT now()
+       ); $$,
+
+    $$ INSERT INTO _migracion_info (clave, valor) VALUES
+       ('origen',      'mysql8:tienda_mysql'),
+       ('destino',     'pg17:tienda_mysql_migrada'),
+       ('herramienta', 'pgloader'),
+       ('estado',      'completado')
+       ON CONFLICT (clave) DO UPDATE SET valor = EXCLUDED.valor, ts = now(); $$
+
+;

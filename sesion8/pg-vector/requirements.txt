@@ -1,0 +1,10 @@
+# pgvector Lab — dependencias Python
+psycopg2-binary>=2.9.9
+pgvector>=0.3.2
+numpy>=1.24.0
+
+# Embeddings reales (opcional — si no está, se usan vectores aleatorios)
+sentence-transformers>=3.0.0
+
+# Clustering (operación 10)
+scikit-learn>=1.4.0

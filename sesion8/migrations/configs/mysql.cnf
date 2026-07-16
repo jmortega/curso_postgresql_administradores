@@ -1,0 +1,23 @@
+[mysqld]
+# Configuración optimizada para exportación con pgloader
+character-set-server  = utf8mb4
+collation-server      = utf8mb4_unicode_ci
+default_time_zone     = '+00:00'
+
+# pgloader 3.6 requiere mysql_native_password — caching_sha2_password
+# (defecto en MySQL 8) no está soportado por la librería QMYND de pgloader
+default-authentication-plugin = mysql_native_password
+
+# Logging binario requerido para zero-downtime (replicación)
+log_bin               = mysql-bin
+binlog_format         = ROW
+server-id             = 1
+
+# Permite leer datos remotamente
+local_infile          = ON
+
+# Deshabilitar strict mode para compatibilidad máxima
+sql_mode              = ""
+
+[client]
+default-character-set = utf8mb4

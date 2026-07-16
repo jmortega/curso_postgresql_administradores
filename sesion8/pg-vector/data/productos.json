@@ -1,0 +1,212 @@
+[
+  {
+    "id": 1,
+    "nombre": "MacBook Pro 16\"",
+    "descripcion": "Portátil profesional con chip M3 Max, 36 GB RAM y pantalla Liquid Retina XDR.",
+    "precio": 3499.0,
+    "categoria": "electrónica"
+  },
+  {
+    "id": 2,
+    "nombre": "Sony WH-1000XM5",
+    "descripcion": "Auriculares inalámbricos con cancelación de ruido líder del mercado y 30 h de batería.",
+    "precio": 349.0,
+    "categoria": "audio"
+  },
+  {
+    "id": 3,
+    "nombre": "Kindle Paperwhite",
+    "descripcion": "Lector de e-books con pantalla sin reflejos, resistencia al agua y batería de semanas.",
+    "precio": 149.99,
+    "categoria": "electrónica"
+  },
+  {
+    "id": 4,
+    "nombre": "Silla ErgoChair Pro",
+    "descripcion": "Silla ergonómica con soporte lumbar ajustable, reposabrazos 4D y malla transpirable.",
+    "precio": 599.0,
+    "categoria": "mobiliario"
+  },
+  {
+    "id": 5,
+    "nombre": "Monitor LG 4K 27\"",
+    "descripcion": "Monitor IPS 4K con cobertura DCI-P3 95 %, ideal para diseño gráfico y programación.",
+    "precio": 499.0,
+    "categoria": "monitores"
+  },
+  {
+    "id": 6,
+    "nombre": "Teclado mecánico Keychron",
+    "descripcion": "Teclado mecánico inalámbrico compatible con Mac/Windows, switches Gateron Brown.",
+    "precio": 119.0,
+    "categoria": "periféricos"
+  },
+  {
+    "id": 7,
+    "nombre": "iPad Pro 12.9\"",
+    "descripcion": "Tablet profesional con chip M2, pantalla Liquid Retina y Apple Pencil compatible.",
+    "precio": 1299.0,
+    "categoria": "electrónica"
+  },
+  {
+    "id": 8,
+    "nombre": "Cámara Sony A7 IV",
+    "descripcion": "Cámara mirrorless full-frame de 33 MP con vídeo 4K 120fps y estabilización IBIS.",
+    "precio": 2799.0,
+    "categoria": "fotografía"
+  },
+  {
+    "id": 9,
+    "nombre": "DJI Mini 4 Pro",
+    "descripcion": "Dron de 249 g con cámara 4K HDR, evitación de obstáculos omnidireccional y 34 min de vuelo.",
+    "precio": 959.0,
+    "categoria": "drones"
+  },
+  {
+    "id": 10,
+    "nombre": "Samsung Galaxy S24 Ultra",
+    "descripcion": "Smartphone Android premium con S Pen integrado, cámara 200 MP y Snapdragon 8 Gen 3.",
+    "precio": 1299.0,
+    "categoria": "móviles"
+  },
+  {
+    "id": 11,
+    "nombre": "Apple Watch Ultra 2",
+    "descripcion": "Smartwatch de aventura con GPS dual, altímetro barométrico y carcasa de titanio.",
+    "precio": 899.0,
+    "categoria": "wearables"
+  },
+  {
+    "id": 12,
+    "nombre": "Nvidia RTX 4090",
+    "descripcion": "GPU de gama alta para juegos y IA con 24 GB GDDR6X y arquitectura Ada Lovelace.",
+    "precio": 1999.0,
+    "categoria": "componentes"
+  },
+  {
+    "id": 13,
+    "nombre": "NAS Synology DS923+",
+    "descripcion": "Servidor NAS de 4 bahías con CPU AMD Ryzen, ideal para copia de seguridad y media.",
+    "precio": 599.0,
+    "categoria": "almacenamiento"
+  },
+  {
+    "id": 14,
+    "nombre": "Logitech MX Master 3S",
+    "descripcion": "Ratón inalámbrico de productividad con scroll electromagnético y 8 botones programables.",
+    "precio": 99.0,
+    "categoria": "periféricos"
+  },
+  {
+    "id": 15,
+    "nombre": "Impresora 3D Bambu Lab X1",
+    "descripcion": "Impresora FDM multicolor con calibración automática y velocidad de 500 mm/s.",
+    "precio": 1199.0,
+    "categoria": "impresión3D"
+  },
+  {
+    "id": 16,
+    "nombre": "Raspberry Pi 5",
+    "descripcion": "Computador de placa única con procesador Cortex-A76 de 4 núcleos a 2.4 GHz y 8 GB RAM.",
+    "precio": 89.0,
+    "categoria": "SBC"
+  },
+  {
+    "id": 17,
+    "nombre": "Altavoz Sonos Era 300",
+    "descripcion": "Altavoz Dolby Atmos inalámbrico con sonido espacial y compatibilidad AirPlay 2.",
+    "precio": 449.0,
+    "categoria": "audio"
+  },
+  {
+    "id": 18,
+    "nombre": "Projector Xgimi Horizon",
+    "descripcion": "Proyector Full HD Android TV con 2200 lúmenes y corrección automática de keystone.",
+    "precio": 799.0,
+    "categoria": "proyectores"
+  },
+  {
+    "id": 19,
+    "nombre": "Router ASUS ZenWiFi Pro",
+    "descripcion": "Sistema WiFi 6E de malla con cobertura de 680 m² y seguridad AiProtection Pro.",
+    "precio": 549.0,
+    "categoria": "redes"
+  },
+  {
+    "id": 20,
+    "nombre": "UPS APC 1500VA",
+    "descripcion": "Sistema de alimentación ininterrumpida con 8 salidas y protección contra sobretensiones.",
+    "precio": 249.0,
+    "categoria": "energía"
+  },
+  {
+    "id": 21,
+    "nombre": "Mechanical Keyboard HHKB",
+    "descripcion": "Teclado compacto profesional con switches Topre electrostáticos y distribución 60%.",
+    "precio": 299.0,
+    "categoria": "periféricos"
+  },
+  {
+    "id": 22,
+    "nombre": "Webcam Elgato Facecam",
+    "descripcion": "Cámara web Full HD 1080p60 con sensor Sony y sin compresión para streaming.",
+    "precio": 179.0,
+    "categoria": "streaming"
+  },
+  {
+    "id": 23,
+    "nombre": "SSD Samsung 990 Pro 2TB",
+    "descripcion": "SSD NVMe PCIe 4.0 con velocidades de lectura de 7450 MB/s para máximo rendimiento.",
+    "precio": 199.0,
+    "categoria": "almacenamiento"
+  },
+  {
+    "id": 24,
+    "nombre": "AirPods Pro 2ª gen",
+    "descripcion": "Auriculares inalámbricos con chip H2, cancelación activa adaptativa y estuche MagSafe.",
+    "precio": 279.0,
+    "categoria": "audio"
+  },
+  {
+    "id": 25,
+    "nombre": "Kindle Scribe",
+    "descripcion": "Lector y bloc de notas digital con pantalla de 10.2\" y lápiz incluido.",
+    "precio": 369.99,
+    "categoria": "electrónica"
+  },
+  {
+    "id": 26,
+    "nombre": "Mesa de pie Flexispot E7",
+    "descripcion": "Escritorio eléctrico con patas de doble motor, memoria de 4 posiciones y tope anti-colisión.",
+    "precio": 549.0,
+    "categoria": "mobiliario"
+  },
+  {
+    "id": 27,
+    "nombre": "Tarjeta capturadora Elgato",
+    "descripcion": "Capturadora 4K60 Pro con compatibilidad HDR y latencia ultrabaja para streaming.",
+    "precio": 199.0,
+    "categoria": "streaming"
+  },
+  {
+    "id": 28,
+    "nombre": "Google Pixel Watch 2",
+    "descripcion": "Smartwatch con Fitbit integrado, ECG, SpO2 y sensor de temperatura corporal.",
+    "precio": 349.0,
+    "categoria": "wearables"
+  },
+  {
+    "id": 29,
+    "nombre": "Teclado Nuphy Air96",
+    "descripcion": "Teclado mecánico hot-swap de perfil bajo con switches Gateron Low Profile.",
+    "precio": 129.0,
+    "categoria": "periféricos"
+  },
+  {
+    "id": 30,
+    "nombre": "Micrófono Blue Yeti X",
+    "descripcion": "Micrófono de condensador USB con cuatro patrones polares y monitorización en tiempo real.",
+    "precio": 169.0,
+    "categoria": "audio"
+  }
+]

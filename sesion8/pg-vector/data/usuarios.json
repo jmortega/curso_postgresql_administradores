@@ -1,0 +1,202 @@
+[
+  {
+    "id": 1,
+    "nombre": "Elena García",
+    "intereses": [
+      "inteligencia artificial",
+      "Python",
+      "base de datos",
+      "cloud computing"
+    ]
+  },
+  {
+    "id": 2,
+    "nombre": "Carlos Martínez",
+    "intereses": [
+      "fotografía",
+      "viajes",
+      "arquitectura",
+      "diseño gráfico"
+    ]
+  },
+  {
+    "id": 3,
+    "nombre": "Laura Sánchez",
+    "intereses": [
+      "música clásica",
+      "piano",
+      "literatura",
+      "cine independiente"
+    ]
+  },
+  {
+    "id": 4,
+    "nombre": "Andrés López",
+    "intereses": [
+      "videojuegos",
+      "esports",
+      "streaming",
+      "hardware PC"
+    ]
+  },
+  {
+    "id": 5,
+    "nombre": "Marta Rodríguez",
+    "intereses": [
+      "cocina",
+      "gastronomía",
+      "vinos",
+      "recetas vegetarianas"
+    ]
+  },
+  {
+    "id": 6,
+    "nombre": "David Fernández",
+    "intereses": [
+      "senderismo",
+      "escalada",
+      "trail running",
+      "naturaleza"
+    ]
+  },
+  {
+    "id": 7,
+    "nombre": "Isabel Torres",
+    "intereses": [
+      "moda",
+      "diseño de interiores",
+      "arte contemporáneo",
+      "sostenibilidad"
+    ]
+  },
+  {
+    "id": 8,
+    "nombre": "Pablo Jiménez",
+    "intereses": [
+      "finanzas",
+      "inversión",
+      "criptomonedas",
+      "macroeconomía"
+    ]
+  },
+  {
+    "id": 9,
+    "nombre": "Sofía Moreno",
+    "intereses": [
+      "biología marina",
+      "oceanografía",
+      "buceo",
+      "conservación"
+    ]
+  },
+  {
+    "id": 10,
+    "nombre": "Raúl Pérez",
+    "intereses": [
+      "astronomía",
+      "astrofísica",
+      "telescopios",
+      "ciencia espacial"
+    ]
+  },
+  {
+    "id": 11,
+    "nombre": "Carmen Ruiz",
+    "intereses": [
+      "yoga",
+      "meditación",
+      "psicología positiva",
+      "mindfulness"
+    ]
+  },
+  {
+    "id": 12,
+    "nombre": "Javier Díaz",
+    "intereses": [
+      "robótica",
+      "Arduino",
+      "impresión 3D",
+      "electrónica maker"
+    ]
+  },
+  {
+    "id": 13,
+    "nombre": "Patricia Gómez",
+    "intereses": [
+      "cómics",
+      "animación",
+      "ilustración digital",
+      "manga"
+    ]
+  },
+  {
+    "id": 14,
+    "nombre": "Miguel Serrano",
+    "intereses": [
+      "historia medieval",
+      "arqueología",
+      "numismática",
+      "cultura clásica"
+    ]
+  },
+  {
+    "id": 15,
+    "nombre": "Ana Blanco",
+    "intereses": [
+      "data science",
+      "visualización de datos",
+      "estadística",
+      "R"
+    ]
+  },
+  {
+    "id": 16,
+    "nombre": "Sergio Molina",
+    "intereses": [
+      "ciclismo",
+      "MTB",
+      "nutrición deportiva",
+      "triatlón"
+    ]
+  },
+  {
+    "id": 17,
+    "nombre": "Rosa Ortega",
+    "intereses": [
+      "jardinería",
+      "botánica",
+      "permacultura",
+      "vida rural"
+    ]
+  },
+  {
+    "id": 18,
+    "nombre": "Tomás Castro",
+    "intereses": [
+      "emprendimiento",
+      "startups",
+      "product management",
+      "lean startup"
+    ]
+  },
+  {
+    "id": 19,
+    "nombre": "Lucía Iglesias",
+    "intereses": [
+      "teatro",
+      "danza contemporánea",
+      "literatura dramática",
+      "improvisación"
+    ]
+  },
+  {
+    "id": 20,
+    "nombre": "Héctor Vargas",
+    "intereses": [
+      "seguridad informática",
+      "pentesting",
+      "CTF",
+      "redes"
+    ]
+  }
+]
